@@ -1,0 +1,9 @@
+django
+django-environ
+psycopg[binary]
+django-allauth
+django-htmx
+django-filter
+django-storages
+django-widget-tweaks
+whitenoise
