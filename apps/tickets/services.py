@@ -49,10 +49,6 @@ def generate_ticket_protocol():
 
 
 def get_tickets_for_user(user):
-    #regra: na tabela userdepartment estão os usuários ligados a departamentos
-    #admin e atendente podem ver todos os tickets
-    #gestor de unidade pode ver todos os tickets da unidade
-    #cliente só pode ver os dele
     if user.role in (User.Roles.ADMIN, User.Roles.ATENDENTE):
         return Ticket.objects.all()
     elif user.role == User.Roles.GESTOR_UNIDADE:
