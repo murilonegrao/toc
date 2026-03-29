@@ -1,5 +1,10 @@
 from django.db import transaction, models
 from .models import Ticket, TicketStatusLog
+from apps.accounts.models import UserDepartment
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 
 def change_ticket_status(ticket, new_status, user, justification=None):
@@ -36,8 +41,24 @@ def change_ticket_status(ticket, new_status, user, justification=None):
         ticket.status = new_status
         ticket.save()
 
+
 def generate_ticket_protocol():
     with transaction.atomic():
         last = Ticket.objects.select_for_update().aggregate(max=models.Max('protocol'))
         return (last['max'] or 0) + 1
 
+
+def get_tickets_for_user(user):
+    #regra: na tabela userdepartment estão os usuários ligados a departamentos
+    #admin e atendente podem ver todos os tickets
+    #gestor de unidade pode ver todos os tickets da unidade
+    #cliente só pode ver os dele
+    if user.role in (User.Roles.ADMIN, User.Roles.ATENDENTE):
+        return Ticket.objects.all()
+    elif user.role == User.Roles.GESTOR_UNIDADE:
+        user_departments = UserDepartment.objects.filter(user=user).values_list('department', flat=True)
+        return Ticket.objects.filter(department__in=user_departments)
+    elif user.role == User.Roles.CLIENTE:
+        return Ticket.objects.filter(author=user)
+    else:
+        return Ticket.objects.none()
