@@ -18,6 +18,7 @@ class Ticket(models.Model):
         
     class Status(models.TextChoices):
         OPEN = 'aberto', 'Aberto'
+        RECEIVED = 'recebido', 'Recebido'
         IN_PROGRESS = 'em_desenvolvimento', 'Em Desenvolvimento'
         IN_PRODUCTION = 'em_producao', 'Em Produção'
         WAITING_FOR_CLIENT = 'aguardando_cliente', 'Aguardando Cliente'
