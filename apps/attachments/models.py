@@ -31,3 +31,6 @@ class Attachment(models.Model):
                 name='attachment_must_have_ticket_or_comment'
             )
         ]
+
+    def __str__(self):
+        return self.original_name

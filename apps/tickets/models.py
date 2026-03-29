@@ -51,6 +51,9 @@ class Ticket(models.Model):
     notify_by_email = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'#{self.protocol} - {self.subject}'
     
 class TicketStatusLog(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
