@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TOC{% endblock %} — Sistema de Chamados</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.0" defer></script>
+    <!-- Alpine.js -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <style>
+        :root {
+            --sidebar-bg: #1a1a2e;
+            --sidebar-width: 220px;
+            --main-bg: #16213e;
+            --card-bg: #1e2a45;
+            --primary: #4A90D9;
+            --text-muted-custom: #8892a4;
+        }
+
+        body {
+            background-color: var(--main-bg);
+            color: #e0e6f0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background-color: var(--sidebar-bg);
+            overflow-y: auto;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .sidebar-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar-username {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #e0e6f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-role {
+            font-size: 0.7rem;
+            color: var(--text-muted-custom);
+        }
+
+        .sidebar-nav {
+            padding: 0.75rem 0;
+            flex: 1;
+        }
+
+        .sidebar-section-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted-custom);
+            padding: 0.75rem 1rem 0.25rem;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.45rem 1rem;
+            color: #b0bec8;
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-radius: 0;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background-color: rgba(74, 144, 217, 0.15);
+            color: var(--primary);
+        }
+
+        .sidebar-link i {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+        }
+
+        /* departamento com cor própria */
+        .dept-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Main content ── */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            padding: 0.6rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .main-content {
+            padding: 1.75rem;
+            flex: 1;
+        }
+
+        /* ── Cards ── */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+        }
+
+        /* ── Badges de status ── */
+        .badge-aberto        { background-color: #1e6fb5; color: #fff; }
+        .badge-recebido      { background-color: #5a3e9e; color: #fff; }
+        .badge-em_desenvolvimento { background-color: #b07d12; color: #fff; }
+        .badge-em_producao   { background-color: #0f6b5c; color: #fff; }
+        .badge-aguardando_cliente { background-color: #7a4010; color: #fff; }
+        .badge-finalizado    { background-color: #1a6b35; color: #fff; }
+        .badge-nao_atendido  { background-color: #8b1a1a; color: #fff; }
+        .badge-cancelado     { background-color: #4a4a4a; color: #fff; }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- ══════════════ SIDEBAR ══════════════ -->
+    <aside class="sidebar">
+
+        <div class="sidebar-header">
+            <div class="d-flex align-items-center gap-2">
+                <div class="sidebar-avatar">
+                    {{ request.user.name|slice:":2"|upper }}
+                </div>
+                <div style="overflow:hidden">
+                    <div class="sidebar-username">{{ request.user.name }}</div>
+                    <div class="sidebar-role">{{ request.user.get_role_display }}</div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <!-- Menu principal -->
+            <a href="/" class="sidebar-link">
+                <i class="bi bi-house"></i> Página inicial
+            </a>
+
+            <a href="{% url 'tickets:create' %}" class="sidebar-link">
+                <i class="bi bi-plus-circle"></i> Abrir chamado
+            </a>
+
+            <a href="{% url 'tickets:list' %}" class="sidebar-link">
+                <i class="bi bi-ticket-perforated"></i> Meus chamados
+            </a>
+
+            <!-- Visível só para atendente/admin -->
+            {% if request.user.role in 'admin,atendente' %}
+            <div class="sidebar-section-label">Gestão</div>
+
+            <a href="{% url 'tickets:list_all' %}" class="sidebar-link">
+                <i class="bi bi-collection"></i> Todos os chamados
+            </a>
+
+            <a href="{% url 'accounts:pending_users' %}" class="sidebar-link">
+                <i class="bi bi-person-check"></i> Aprovações pendentes
+            </a>
+            {% endif %}
+
+            <!-- Visível só para admin -->
+            {% if request.user.role == 'admin' %}
+            <div class="sidebar-section-label">Administração</div>
+
+            <a href="/admin/" class="sidebar-link">
+                <i class="bi bi-gear"></i> Django Admin
+            </a>
+            {% endif %}
+
+            <!-- Departamentos do usuário -->
+            {% if request.user.role != 'cliente' %}
+            <div class="sidebar-section-label">Meus departamentos</div>
+            {% for ud in request.user.userdepartment_set.select_related('department').all %}
+            <a href="{% url 'tickets:list' %}?dept={{ ud.department.id }}" class="sidebar-link">
+                <span class="dept-dot" style="background-color: {{ ud.department.color }}"></span>
+                {{ ud.department.name }}
+            </a>
+            {% endfor %}
+            {% endif %}
+
+        </nav>
+
+        <!-- Logout no rodapé da sidebar -->
+        <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.07);">
+            <a href="{% url 'account_logout' %}" class="sidebar-link" style="padding: 0.4rem 0;">
+                <i class="bi bi-box-arrow-left"></i> Sair
+            </a>
+        </div>
+
+    </aside>
+
+    <!-- ══════════════ MAIN ══════════════ -->
+    <div class="main-wrapper">
+
+        <!-- Topbar -->
+        <div class="topbar d-flex align-items-center justify-content-between">
+            <span style="font-size:0.9rem; color: var(--text-muted-custom);">
+                🔔 Núcleo de Automação de Procedimentos
+            </span>
+            {% block topbar_extra %}{% endblock %}
+        </div>
+
+        <!-- Conteúdo da página -->
+        <main class="main-content">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>
