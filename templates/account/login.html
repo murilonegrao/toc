@@ -1,0 +1,18 @@
+{% extends "base_public.html" %}
+
+{% block title %}Entrar{% endblock %}
+
+{% block content %}
+    <h4 class="mb-4 text-center">🔔 TOC — Sistema de Chamados</h4>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
+    </form>
+
+    <hr class="my-3">
+    <p class="text-center" style="font-size:0.85rem;">
+        Não tem conta? <a href="{% url 'account_signup' %}">Cadastre-se</a>
+    </p>
+{% endblock %}
