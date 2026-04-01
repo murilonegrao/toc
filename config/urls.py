@@ -26,6 +26,7 @@ urlpatterns = [
     path('comments/', include('apps.comments.urls')),
     path('departments/', include('apps.departments.urls')),
     path('tickets/', include('apps.tickets.urls')),
+    path('', include('apps.core.urls')),
 ]
 
 if settings.DEBUG:

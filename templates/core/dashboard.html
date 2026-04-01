@@ -1,0 +1,8 @@
+{% extends "base_app_copy.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2>Bem-vindo, {{ request.user.name }}</h2>
+<p>você está logado como <strong>{{ request.user.get_role_display }}</strong></p>
+{% endblock %}
