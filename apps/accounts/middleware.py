@@ -7,9 +7,11 @@ class ApprovalRequiredMiddleware:
 
     EXEMPT_URLS = [
         '/accounts/login/',
+        '/accounts/logout/',
         '/accounts/signup/',
         '/accounts/pending/',
         '/accounts/select-department/',
+        '/accounts/inactive/',
         '/admin/',
     ]
         
@@ -33,7 +35,7 @@ class ApprovalRequiredMiddleware:
                     return redirect('accounts:pending')
             elif request.user.role in (User.Roles.GESTOR_UNIDADE, User.Roles.CLIENTE):
                 if not UserDepartment.objects.filter(user=request.user).exists():
-                    return redirect('accounts:select-department')
+                    return redirect('accounts:select_department')
                 elif not request.user.is_approved:
                     return redirect('accounts:pending')
                 else:

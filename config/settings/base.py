@@ -86,6 +86,22 @@ DATABASES = {
     'default': env.db('DATABASE_URL')
 }
 
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    }
+}
+
+AWS_ACCESS_KEY_ID = env('S3_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('S3_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = env('S3_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = env('S3_ENDPOINT_URL')
+AWS_S3_REGION_NAME = env('S3_REGION_NAME', default='us-east-1')
+AWS_DEFAULT_ACL = 'private'
+AWS_S3_FILE_OVERWRITE = False
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -123,6 +139,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
 AUTH_USER_MODEL = 'accounts.User'
 
 SITE_ID = 1
@@ -136,5 +156,7 @@ ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 LOGIN_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
 ACCOUNT_FORMS = {'signup': 'apps.accounts.forms.CustomSignupForm'}
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None

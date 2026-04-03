@@ -1,0 +1,305 @@
+{% extends "base_app.html" %}
+
+{% block title %}Kanban — Chamados{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Kanban — Todos os Chamados</h1>
+        <p class="page-subtitle">Arraste os cards entre colunas para alterar o status</p>
+    </div>
+    <a href="{% url 'tickets:create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> Abrir chamado
+    </a>
+</div>
+
+<div class="kanban-wrapper">
+    {% for status, col in kanban.items %}
+    <div class="kanban-col" data-status="{{ status }}">
+
+        <div class="kanban-col-header">
+            <span class="kanban-col-title">{{ col.label }}</span>
+            <span class="kanban-col-count" id="count-{{ status }}">{{ col.tickets.count }}</span>
+        </div>
+
+        <div class="kanban-col-body" id="col-{{ status }}">
+            {% for ticket in col.tickets %}
+            <a href="{% url 'tickets:detail' ticket.id %}"
+               class="kanban-card"
+               data-ticket-id="{{ ticket.id }}"
+               data-current-status="{{ status }}">
+
+                <div class="kanban-card-protocol">#{{ ticket.protocol }}</div>
+
+                <div class="kanban-card-subject">{{ ticket.subject }}</div>
+
+                <div class="kanban-card-meta">
+                    <span class="kanban-card-dept"
+                          style="background-color: {{ ticket.department.color }}20; color: {{ ticket.department.color }};">
+                        {{ ticket.department.initials }}
+                    </span>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="kanban-priority-dot priority-{{ ticket.priority }}"></span>
+                        <span>{{ ticket.author.name|truncatechars:15 }}</span>
+                    </div>
+                </div>
+
+            </a>
+            {% empty %}
+            <div class="kanban-empty">
+                <i class="bi bi-inbox" style="font-size:1.2rem; display:block; margin-bottom:0.3rem;"></i>
+                Nenhum chamado
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal de justificativa (nao_atendido) -->
+<div class="modal fade" id="justificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:1px solid #f3f4f6;">
+                <h6 class="modal-title" style="font-size:0.88rem; font-weight:700;">Justificativa obrigatória</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">
+                    Informe o motivo para marcar como <strong>Não Atendido</strong>:
+                </p>
+                <textarea id="justification-text" class="form-control" rows="3"
+                          placeholder="Motivo..."></textarea>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #f3f4f6;">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-primary" id="confirm-justification">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast de feedback -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1090;">
+    <div id="kanban-toast" class="toast align-items-center border-0" role="alert" data-bs-delay="3000">
+        <div class="d-flex">
+            <div class="toast-body" id="kanban-toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- SortableJS -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+
+<script>
+(function() {
+    const TRANSITIONS = {{ transitions_json|safe }};
+    const CSRF = '{{ csrf_token }}';
+    const MOVE_URL_TPL = '{% url "tickets:kanban_move" ticket_id=0 %}'.replace('/0/', '/{id}/');
+
+    // Toast helper
+    function showToast(msg, ok) {
+        const toast = document.getElementById('kanban-toast');
+        const body  = document.getElementById('kanban-toast-body');
+        body.textContent = msg;
+        toast.className = 'toast align-items-center border-0 text-bg-' + (ok ? 'success' : 'danger');
+        new bootstrap.Toast(toast).show();
+    }
+
+    // Atualiza contadores
+    function updateCounts() {
+        document.querySelectorAll('.kanban-col').forEach(col => {
+            const status = col.dataset.status;
+            const count  = col.querySelector('.kanban-col-body').querySelectorAll('.kanban-card').length;
+            const badge  = document.getElementById('count-' + status);
+            if (badge) badge.textContent = count;
+        });
+    }
+
+    // Remove "Nenhum chamado" se houver cards, adiciona se vazio
+    function updateEmptyStates() {
+        document.querySelectorAll('.kanban-col-body').forEach(body => {
+            const cards = body.querySelectorAll('.kanban-card');
+            const empty = body.querySelector('.kanban-empty');
+            if (cards.length > 0 && empty) {
+                empty.remove();
+            } else if (cards.length === 0 && !empty) {
+                body.innerHTML = `
+                    <div class="kanban-empty">
+                        <i class="bi bi-inbox" style="font-size:1.2rem; display:block; margin-bottom:0.3rem;"></i>
+                        Nenhum chamado
+                    </div>`;
+            }
+        });
+    }
+
+    // Verifica se a transição é permitida
+    function canDrop(fromStatus, toStatus) {
+        const allowed = TRANSITIONS[fromStatus];
+        return allowed && allowed.includes(toStatus);
+    }
+
+    // Envia a mudança de status ao backend
+    function moveTicket(ticketId, newStatus, justification) {
+        const url = MOVE_URL_TPL.replace('{id}', ticketId);
+        const form = new FormData();
+        form.append('new_status', newStatus);
+        form.append('justification', justification || '');
+
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF },
+            body: form,
+        }).then(r => r.json());
+    }
+
+    // Variáveis para a justificativa
+    let pendingMove = null;
+
+    // Inicializa SortableJS em cada coluna
+    document.querySelectorAll('.kanban-col-body').forEach(body => {
+        new Sortable(body, {
+            group: 'kanban',
+            animation: 180,
+            ghostClass: 'kanban-card-ghost',
+            chosenClass: 'kanban-card-chosen',
+            dragClass: 'kanban-card-drag',
+            filter: '.kanban-empty',
+
+            // Impede links de abrir ao arrastar
+            preventOnFilter: false,
+            delay: 150,
+            delayOnTouchOnly: true,
+
+            onStart: function(evt) {
+                const fromStatus = evt.from.closest('.kanban-col').dataset.status;
+
+                // Adiciona indicador visual nas colunas permitidas
+                document.querySelectorAll('.kanban-col').forEach(col => {
+                    const s = col.dataset.status;
+                    if (s === fromStatus) return;
+                    if (canDrop(fromStatus, s)) {
+                        col.classList.add('kanban-col-drop-allowed');
+                    } else {
+                        col.classList.add('kanban-col-drop-forbidden');
+                    }
+                });
+            },
+
+            onEnd: function(evt) {
+                // Limpa indicadores visuais
+                document.querySelectorAll('.kanban-col').forEach(col => {
+                    col.classList.remove('kanban-col-drop-allowed', 'kanban-col-drop-forbidden');
+                });
+
+                const card      = evt.item;
+                const ticketId  = card.dataset.ticketId;
+                const fromCol   = evt.from.closest('.kanban-col');
+                const toCol     = evt.to.closest('.kanban-col');
+                const newStatus = toCol.dataset.status;
+                const oldStatus = card.dataset.currentStatus;
+
+                // Se não mudou de coluna, nada a fazer
+                if (oldStatus === newStatus) return;
+
+                // Verifica se a transição é válida
+                if (!canDrop(oldStatus, newStatus)) {
+                    // Volta o card para a coluna original
+                    evt.from.appendChild(card);
+                    updateCounts();
+                    updateEmptyStates();
+                    showToast('Transição não permitida: ' + oldStatus + ' → ' + newStatus, false);
+                    return;
+                }
+
+                // Se o destino é nao_atendido, pede justificativa
+                if (newStatus === 'nao_atendido') {
+                    pendingMove = { card, ticketId, newStatus, oldStatus, fromBody: evt.from };
+                    const modal = new bootstrap.Modal(document.getElementById('justificationModal'));
+                    document.getElementById('justification-text').value = '';
+                    modal.show();
+                    return;
+                }
+
+                // Envia para o backend
+                card.classList.add('kanban-card-loading');
+                moveTicket(ticketId, newStatus, '').then(data => {
+                    card.classList.remove('kanban-card-loading');
+                    if (data.ok) {
+                        card.dataset.currentStatus = newStatus;
+                        updateCounts();
+                        updateEmptyStates();
+                        showToast('Chamado movido com sucesso!', true);
+                    } else {
+                        evt.from.appendChild(card);
+                        updateCounts();
+                        updateEmptyStates();
+                        showToast(data.error || 'Erro ao mover.', false);
+                    }
+                }).catch(() => {
+                    card.classList.remove('kanban-card-loading');
+                    evt.from.appendChild(card);
+                    updateCounts();
+                    updateEmptyStates();
+                    showToast('Erro de conexão.', false);
+                });
+            }
+        });
+    });
+
+    // Confirmar justificativa
+    document.getElementById('confirm-justification').addEventListener('click', function() {
+        if (!pendingMove) return;
+        const justification = document.getElementById('justification-text').value.trim();
+        if (!justification) {
+            document.getElementById('justification-text').classList.add('is-invalid');
+            return;
+        }
+        document.getElementById('justification-text').classList.remove('is-invalid');
+
+        const { card, ticketId, newStatus, oldStatus, fromBody } = pendingMove;
+        bootstrap.Modal.getInstance(document.getElementById('justificationModal')).hide();
+
+        card.classList.add('kanban-card-loading');
+        moveTicket(ticketId, newStatus, justification).then(data => {
+            card.classList.remove('kanban-card-loading');
+            if (data.ok) {
+                card.dataset.currentStatus = newStatus;
+                updateCounts();
+                updateEmptyStates();
+                showToast('Chamado movido com sucesso!', true);
+            } else {
+                fromBody.appendChild(card);
+                updateCounts();
+                updateEmptyStates();
+                showToast(data.error || 'Erro ao mover.', false);
+            }
+        }).catch(() => {
+            card.classList.remove('kanban-card-loading');
+            fromBody.appendChild(card);
+            updateCounts();
+            updateEmptyStates();
+            showToast('Erro de conexão.', false);
+        });
+        pendingMove = null;
+    });
+
+    // Se cancelar o modal, volta o card
+    document.getElementById('justificationModal').addEventListener('hidden.bs.modal', function() {
+        if (!pendingMove) return;
+        const { card, fromBody } = pendingMove;
+        fromBody.appendChild(card);
+        updateCounts();
+        updateEmptyStates();
+        pendingMove = null;
+    });
+
+})();
+</script>
+{% endblock %}

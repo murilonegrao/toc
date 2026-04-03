@@ -1,0 +1,112 @@
+{% extends "base_app.html" %}
+
+{% block title %}Gestão de Usuários{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Gestão de Usuários</h1>
+        <p class="page-subtitle">{{ users.count }} usuário(s) ativo(s) no sistema</p>
+    </div>
+</div>
+
+<!-- Usuários ativos -->
+<div class="card mb-4">
+    <div class="card-header">Usuários ativos</div>
+    <div class="card-body p-0">
+        {% if users %}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Papel</th>
+                    <th>Departamento(s)</th>
+                    <th>Cadastrado em</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><strong>{{ user.name }}</strong></td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="badge-status badge-recebido">
+                            {{ user.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% for ud in user.userdepartment_set.all %}
+                        <span class="badge-status" style="background:#f3f4f6; color:#374151;">
+                            {{ ud.department.initials }}
+                        </span>
+                        {% empty %}
+                        <span style="color:#9ca3af; font-size:0.75rem;">Nenhum</span>
+                        {% endfor %}
+                    </td>
+                    <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+                    <td>
+                        <a href="{% url 'accounts:user_edit' user.id %}"
+                            class="btn btn-sm btn-secondary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-4" style="color:#9ca3af;">
+            <p class="mb-0">Nenhum usuário ativo.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Usuários inativos/rejeitados -->
+{% if inactive_users %}
+<div class="card">
+    <div class="card-header d-flex align-items-center gap-2">
+        <span>Rejeitados / Inativos</span>
+        <span class="badge-status badge-nao_atendido">{{ inactive_users.count }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Motivo</th>
+                    <th>Cadastrado em</th>
+                    <th>Reativar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in inactive_users %}
+                <tr>
+                    <td><strong>{{ user.name }}</strong></td>
+                    <td>{{ user.email }}</td>
+                    <td style="color:#991b1b; font-size:0.78rem;">
+                        {{ user.rejection_reason|default:"—"|truncatechars:50 }}
+                    </td>
+                    <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+                    <td>
+                        <form method="POST" action="{% url 'accounts:approve_user' user.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="role" value="{{ user.role }}">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-arrow-clockwise"></i> Reativar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

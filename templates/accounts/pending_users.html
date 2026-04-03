@@ -1,0 +1,143 @@
+{% extends "base_app.html" %}
+
+{% block title %}Aprovações Pendentes{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Aprovações Pendentes</h1>
+        <p class="page-subtitle">Usuários aguardando aprovação de acesso ao sistema</p>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        {{ pending.count }} usuário(s) pendente(s)
+    </div>
+    <div class="card-body p-0">
+        {% if pending %}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Telefone</th>
+                    <th>Departamento(s)</th>
+                    <th>Cadastrado em</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in pending %}
+                <tr>
+                    <td><strong>{{ user.name }}</strong></td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone|default:"—" }}</td>
+                    <td>
+                        {% for ud in user.userdepartment_set.all %}
+                        <span class="badge-status badge-recebido">{{ ud.department.initials }}</span>
+                        {% empty %}
+                        <span style="color:#9ca3af; font-size:0.75rem;">Nenhum</span>
+                        {% endfor %}
+                    </td>
+                    <td>{{ user.date_joined|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#modal-approve-{{ user.id }}">
+                            Aprovar
+                        </button>
+                        {% if not is_gestor %}
+                        <button class="btn btn-sm btn-secondary ms-1" data-bs-toggle="modal"
+                            data-bs-target="#modal-reject-{{ user.id }}">
+                            Rejeitar
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Modal de aprovação -->
+                <div class="modal fade" id="modal-approve-{{ user.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Aprovar {{ user.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{% url 'accounts:approve_user' user.id %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    {% if not is_gestor %}
+                                    <div class="mb-3">
+                                        <label class="form-label">Papel do usuário</label>
+                                        <select name="role" class="form-select">
+                                            <option value="cliente">Cliente</option>
+                                            <option value="atendente">Atendente</option>
+                                            <option value="gestor_unidade">Gestor de Unidade</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    {% else %}
+                                    <p style="color:#6b7280; font-size:0.85rem;">
+                                        O usuário será aprovado como <strong>Cliente</strong> no seu departamento.
+                                    </p>
+                                    {% endif %}
+
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary">Confirmar aprovação</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal de rejeição -->
+                <div class="modal fade" id="modal-reject-{{ user.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Rejeitar {{ user.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{% url 'accounts:reject_user' user.id %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Motivo da rejeição</label>
+                                        <textarea name="rejection_reason" class="form-control" rows="3"
+                                            placeholder="Informe o motivo..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-danger">Confirmar rejeição</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5" style="color:#9ca3af;">
+            <i class="bi bi-check-circle" style="font-size:2rem;"></i>
+            <p class="mt-2">Nenhum usuário pendente de aprovação.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

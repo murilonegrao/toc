@@ -1,0 +1,166 @@
+{% extends "base_app.html" %}
+
+{% block title %}Abrir Chamado{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Abrir Chamado</h1>
+        <p class="page-subtitle">Preencha os campos abaixo para registrar seu chamado</p>
+    </div>
+    <a href="{% url 'tickets:list' %}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Cancelar
+    </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data" action="{% url 'tickets:create' %}" x-data="{ tipo: '{{ form.type.value|default:'' }}' }">
+    {% csrf_token %}
+
+    <div class="row g-3">
+        <!-- Coluna Principal -->
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header">Informações Básicas</div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Central / Departamento <span style="color:#F4645F;">*</span></label>
+                            {{ form.department }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo <span style="color:#F4645F;">*</span></label>
+                            <select name="type" class="form-select" x-model="tipo" required>
+                                <option value="">Selecione...</option>
+                                {% for value, label in form.fields.type.choices %}
+                                {% if value %}
+                                <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Subtipo <span style="color:#F4645F;">*</span></label>
+                            {{ form.subtype }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prioridade <span style="color:#F4645F;">*</span></label>
+                            {{ form.priority }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Assunto <span style="color:#F4645F;">*</span></label>
+                        {{ form.subject }}
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label">Descrição <span style="color:#F4645F;">*</span></label>
+                        {{ form.description }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalhes do Sistema (Condicional) -->
+            <div class="card mb-3" x-show="tipo === 'ORQUESTRADOR'" x-cloak>
+                <div class="card-header">Detalhes do Sistema</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">URL do Sistema</label>
+                        {{ form.url_system }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passos para reproduzir</label>
+                        {{ form.steps }}
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Comportamento esperado</label>
+                            {{ form.normal_behavior }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Comportamento atual</label>
+                            {{ form.unexpected_behavior }}
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Justificativa</label>
+                            {{ form.justification }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Critérios de aceite</label>
+                            {{ form.acceptance_criteria }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalhes da Automação (Condicional) -->
+            <div class="card mb-3" x-show="tipo === 'AUTOMACAO'" x-cloak>
+                <div class="card-header">Detalhes da Automação</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome da automação</label>
+                        {{ form.automation_name }}
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Processo manual</label>
+                        {{ form.manual_process }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Lateral -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">Anexos & Opções</div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight:600; color:#374151;">
+                            <i class="bi bi-paperclip me-1"></i> Enviar arquivos
+                        </label>
+                        <input type="file" name="attachments" class="form-control form-control-sm" multiple
+                            accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.txt">
+                        <div class="form-text mt-2" style="font-size:0.75rem;">
+                            Máximo 10MB por arquivo. Você pode selecionar múltiplos arquivos.
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="form-check mt-3">
+                        {{ form.notify_by_email }}
+                        <label class="form-check-label ms-1" for="{{ form.notify_by_email.id_for_label }}" style="font-size:0.85rem; padding-top:0.15rem;">
+                            Receber notificações por email sobre este chamado
+                        </label>
+                    </div>
+                </div>
+                <div class="card-footer" style="background:#fff; border-top: 1px solid #f3f4f6; padding:1rem;">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-rocket me-1"></i> Abrir chamado
+                    </button>
+                </div>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger" style="font-size:0.85rem;">
+                <strong style="display:block; margin-bottom:0.5rem;"><i class="bi bi-exclamation-triangle"></i> Por favor, corrija os erros abaixo:</strong>
+                <ul class="mb-0 ps-3">
+                    {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li><strong>{{ field|title }}</strong>: {{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+{% endblock %}

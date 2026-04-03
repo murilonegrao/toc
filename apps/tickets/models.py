@@ -22,9 +22,9 @@ class Ticket(models.Model):
         IN_PROGRESS = 'em_desenvolvimento', 'Em Desenvolvimento'
         IN_PRODUCTION = 'em_producao', 'Em Produção'
         WAITING_FOR_CLIENT = 'aguardando_cliente', 'Aguardando Cliente'
-        NOT_ATTENDED = 'nao_atendido', 'Não Atendido'
         CLOSED = 'fechado', 'Fechado'
         CANCELLED = 'cancelado', 'Cancelado'
+        NOT_ATTENDED = 'nao_atendido', 'Não Atendido'
         
     class Priority(models.TextChoices):
         NORMAL = 'normal', 'Normal'

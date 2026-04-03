@@ -3,16 +3,37 @@
 {% block title %}Entrar{% endblock %}
 
 {% block content %}
-    <h4 class="mb-4 text-center">🔔 TOC — Sistema de Chamados</h4>
+<form method="POST">
+    {% csrf_token %}
+    {% if form.errors %}
+    <div class="mb-3 p-3" style="background:rgba(244,100,95,0.12); border-radius:6px; border-left:3px solid #F4645F;">
+        {% for field in form %}
+        {% for error in field.errors %}
+        <div style="color:#F4645F; font-size:0.82rem;">{{ error }}</div>
+        {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+        <div style="color:#F4645F; font-size:0.82rem;">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% for field in form %}
+    <div class="mb-3">
+        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+        <div class="form-text">{{ field.help_text }}</div>
+        {% endif %}
+        {% for error in field.errors %}
+        <div style="color:#F4645F; font-size:0.75rem; margin-top:3px;">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
+</form>
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
-    </form>
-
-    <hr class="my-3">
-    <p class="text-center" style="font-size:0.85rem;">
-        Não tem conta? <a href="{% url 'account_signup' %}">Cadastre-se</a>
-    </p>
+<hr class="my-3">
+<p class="auth-link">
+    Não tem conta? <a href="{% url 'account_signup' %}">Cadastre-se</a>
+</p>
 {% endblock %}

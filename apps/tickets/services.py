@@ -6,17 +6,16 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+TRANSITIONS = {
+    'aberto': ['recebido'],
+    'recebido': ['em_desenvolvimento', 'nao_atendido', 'cancelado'],
+    'em_desenvolvimento': ['em_producao', 'nao_atendido', 'cancelado'],
+    'em_producao': ['aguardando_cliente', 'cancelado'],
+    'aguardando_cliente': ['fechado', 'em_desenvolvimento', 'cancelado'],
+}
+
 
 def change_ticket_status(ticket, new_status, user, justification=None):
-
-    TRANSITIONS = {
-        'aberto': ['recebido'],
-        'recebido': ['em_desenvolvimento', 'nao_atendido', 'cancelado'],
-        'em_desenvolvimento': ['em_producao', 'nao_atendido', 'cancelado'],
-        'em_producao': ['aguardando_cliente', 'cancelado'],
-        'aguardando_cliente': ['finalizado', 'em_desenvolvimento', 'cancelado'],        
-    }
-
     with transaction.atomic():
         
         #pega o valor atual do status como old_status
@@ -24,10 +23,10 @@ def change_ticket_status(ticket, new_status, user, justification=None):
         
         #verifica se a transição é válida
         if new_status not in TRANSITIONS.get(old_status, []):
-            raise ValueError(f'Invalid status transition from {old_status} to {new_status}')
+            raise ValueError(f'Transição inválida de {old_status} para {new_status}')
         
         if new_status == Ticket.Status.NOT_ATTENDED and not justification:
-            raise ValueError('Justification is required when changing status to NOT_ATTENDED')
+            raise ValueError('Justificativa obrigatória para marcar como Não Atendido.')
         
         #cria o log de status
         TicketStatusLog.objects.create(

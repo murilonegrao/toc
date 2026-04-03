@@ -7,3 +7,4 @@ django-filter
 django-storages
 django-widget-tweaks
 whitenoise
+boto3

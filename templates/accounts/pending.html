@@ -1,11 +1,22 @@
-{% extends "base_pending.html" %}
+{% extends "base_public.html" %}
 
 {% block title %}Cadastro Pendente{% endblock %}
 
 {% block content %}
-    <h1>Cadastro Pendente</h1>
-    <p>Seu cadastro está registrado e aguardando aprovação.</p>
-    <p>Enquanto isso, selecione o departamento que deseja acessar.</p>
-    <a href="{% url 'accounts:select_department' %}" class="btn btn-primary">Selecionar Departamento</a>
-    <a href="{% url 'account_logout' %}" class="btn btn-primary">Sair</a>
+<div style="text-align:center; margin-bottom:1.25rem;">
+    <h2 style="font-size:1rem; font-weight:700; color:#e5e7eb; margin-bottom:0.5rem;">
+        Cadastro Pendente
+    </h2>
+    <p class="form-text">Seu cadastro está registrado e aguardando aprovação.</p>
+    <p class="form-text">Enquanto isso, selecione o departamento que deseja acessar.</p>
+</div>
+
+<div class="d-flex flex-column gap-2">
+    <a href="{% url 'accounts:select_department' %}" class="btn btn-primary w-100">
+        Selecionar Departamento
+    </a>
+    <a href="{% url 'account_logout' %}" class="btn btn-secondary w-100">
+        Sair
+    </a>
+</div>
 {% endblock %}
