@@ -26,19 +26,19 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.toc.rule=Host(`${ALLOWED_HOSTS}`)"
-      - "traefik.http.routers.toc.entrypoints=websecure"
-      - "traefik.http.routers.toc.tls.certresolver=myresolver"
-      - "traefik.http.services.toc.loadbalancer.server.port=8000"
-      # Redirect HTTP -> HTTPS
+      - "traefik.docker.network=${TRAEFIK_NETWORK}"
       - "traefik.http.routers.toc-http.rule=Host(`${ALLOWED_HOSTS}`)"
       - "traefik.http.routers.toc-http.entrypoints=web"
       - "traefik.http.routers.toc-http.middlewares=toc-redirect"
       - "traefik.http.middlewares.toc-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.toc-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.toc-https.rule=Host(`${ALLOWED_HOSTS}`)"
+      - "traefik.http.routers.toc-https.entrypoints=websecure"
+      - "traefik.http.routers.toc-https.tls=true"
+      - "traefik.http.routers.toc-https.tls.certresolver=myresolver"
+      - "traefik.http.services.toc-service.loadbalancer.server.port=8000"
     networks:
       - internal
-      - traefik_network
+      - ${TRAEFIK_NETWORK}
     volumes:
       - static_files:/app/staticfiles
 
@@ -101,5 +101,5 @@ volumes:
 networks:
   internal:
     driver: bridge
-  traefik_network:
+  ${TRAEFIK_NETWORK}:
     external: true
