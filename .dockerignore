@@ -22,3 +22,8 @@ env/
 # Mídia e Estáticos (apenas os gerados por você ou buildados)
 media/
 staticfiles/
+
+# Documentação e arquivos desnecessários no container
+CLAUDE.md
+README.md
+test_render.py

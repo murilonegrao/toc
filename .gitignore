@@ -36,7 +36,16 @@ venv.bak/
 
 # Environment Variables
 .env
-.env.local
+.env.*
+!.env.example
+
+# Secrets
+*.pem
+*.key
+
+# Database dumps
+*.sql
+*.dump
 
 # Media/Uploads (Arquivos dos usuários)
 media/
@@ -66,3 +75,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 pytestdebug.log
+
+# Arquivos específicos do projeto (não versionáveis)
+CLAUDE.md
+test_render.py

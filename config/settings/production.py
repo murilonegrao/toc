@@ -5,9 +5,6 @@ DEBUG = env.bool('DJANGO_DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
-# Arquivos Estáticos (necessário para o collectstatic no build)
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
 # Segurança Adicional
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=True)

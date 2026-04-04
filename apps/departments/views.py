@@ -56,6 +56,11 @@ def department_edit(request, dept_id):
         dept.initials = request.POST.get('initials', '').strip().upper()
         dept.color = request.POST.get('color', '#F4645F')
         dept.active = request.POST.get('active') == 'on'
+
+        if Department.objects.filter(initials=dept.initials).exclude(id=dept.id).exists():
+            messages.error(request, f'Já existe um departamento com a sigla {dept.initials}.')
+            return redirect('departments:edit', dept_id=dept.id)
+
         dept.save()
         messages.success(request, f'Departamento {dept.name} atualizado.')
         return redirect('departments:list')
