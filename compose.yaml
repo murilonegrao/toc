@@ -26,12 +26,12 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.toc.rule=Host(`seudominio.com`)"
+      - "traefik.http.routers.toc.rule=Host(`${ALLOWED_HOSTS}`)"
       - "traefik.http.routers.toc.entrypoints=websecure"
       - "traefik.http.routers.toc.tls.certresolver=myresolver"
       - "traefik.http.services.toc.loadbalancer.server.port=8000"
       # Redirect HTTP -> HTTPS
-      - "traefik.http.routers.toc-http.rule=Host(`seudominio.com`)"
+      - "traefik.http.routers.toc-http.rule=Host(`${ALLOWED_HOSTS}`)"
       - "traefik.http.routers.toc-http.entrypoints=web"
       - "traefik.http.routers.toc-http.middlewares=toc-redirect"
       - "traefik.http.middlewares.toc-redirect.redirectscheme.scheme=https"
@@ -76,6 +76,9 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
     volumes:
       - minio_data:/data
+    ports:
+      - ${MINIO_PORT:-9000}:9000
+      - ${MINIO_CONSOLE_PORT:-9001}:9001
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
