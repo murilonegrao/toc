@@ -77,9 +77,7 @@
                         <i class="bi bi-collection"></i> Todos os chamados
                     </a>
                 </div>
-                {% endif %}
 
-                {% if request.user.role in 'admin,atendente' %}
                 <div class="dash_sidebar_nav_item">
                     <a href="{% url 'departments:list' %}">
                         <i class="bi bi-building"></i> Departamentos
