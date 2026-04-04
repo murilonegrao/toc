@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=${TRAEFIK_NETWORK}"
+      - "traefik.docker.network=traefik_network"
       - "traefik.http.routers.toc-http.rule=Host(`${ALLOWED_HOSTS}`)"
       - "traefik.http.routers.toc-http.entrypoints=web"
       - "traefik.http.routers.toc-http.middlewares=toc-redirect"
@@ -38,7 +38,7 @@ services:
       - "traefik.http.services.toc-service.loadbalancer.server.port=8000"
     networks:
       - internal
-      - ${TRAEFIK_NETWORK}
+      - traefik_network
     volumes:
       - static_files:/app/staticfiles
 
@@ -101,5 +101,5 @@ volumes:
 networks:
   internal:
     driver: bridge
-  ${TRAEFIK_NETWORK}:
+  traefik_network:
     external: true
