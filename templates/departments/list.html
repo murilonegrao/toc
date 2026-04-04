@@ -1,0 +1,72 @@
+{% extends "base_app.html" %}
+
+{% block title %}Departamentos{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Departamentos</h1>
+        <p class="page-subtitle">{{ departments.count }} departamento(s) cadastrado(s)</p>
+    </div>
+    <a href="{% url 'departments:create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> Novo departamento
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if departments %}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Cor</th>
+                    <th>Sigla</th>
+                    <th>Nome</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr>
+                    <td>
+                        <span style="display:inline-block; width:20px; height:20px;
+                            border-radius:4px; background-color:{{ dept.color }};"></span>
+                    </td>
+                    <td><strong>{{ dept.initials }}</strong></td>
+                    <td>{{ dept.name }}</td>
+                    <td>
+                        {% if dept.active %}
+                        <span style="color:#14532d; font-size:0.8rem;">
+                            <i class="bi bi-check-circle-fill"></i> Ativo
+                        </span>
+                        {% else %}
+                        <span style="color:#991b1b; font-size:0.8rem;">
+                            <i class="bi bi-x-circle-fill"></i> Inativo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'departments:edit' dept.id %}"
+                            class="btn btn-sm btn-secondary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5" style="color:#9ca3af;">
+            <i class="bi bi-building" style="font-size:2rem;"></i>
+            <p class="mt-2">Nenhum departamento cadastrado.</p>
+            <a href="{% url 'departments:create' %}" class="btn btn-primary btn-sm mt-1">
+                Criar primeiro departamento
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

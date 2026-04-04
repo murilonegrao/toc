@@ -69,7 +69,7 @@
 
 
                 <!-- Visível só para atendente/admin -->
-                {% if request.user.role in 'admin,atendente,gestor' %}
+                {% if request.user.role in 'admin,atendente' %}
                 <div class="dash_sidebar_section_label">Gestão</div>
 
                 <div class="dash_sidebar_nav_item">
@@ -80,6 +80,12 @@
                 {% endif %}
 
                 {% if request.user.role in 'admin,atendente' %}
+                <div class="dash_sidebar_nav_item">
+                    <a href="{% url 'departments:list' %}">
+                        <i class="bi bi-building"></i> Departamentos
+                    </a>
+                </div>
+
                 <div class="dash_sidebar_nav_item">
                     <a href="{% url 'accounts:user_list' %}">
                         <i class="bi bi-people"></i> Usuários
