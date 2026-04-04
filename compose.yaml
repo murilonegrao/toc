@@ -1,0 +1,102 @@
+# =============================================================================
+# TOC - Docker Compose (Produção com Traefik)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # App Django
+  # ---------------------------------------------------------------------------
+  app:
+    build: .
+    container_name: toc-app
+    restart: always
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - S3_ENDPOINT_URL=http://minio:9000
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2 --access-logfile -"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.toc.rule=Host(`toc.murilonegrao.com`)"
+      - "traefik.http.routers.toc.entrypoints=websecure"
+      - "traefik.http.routers.toc.tls.certresolver=myresolver"
+      - "traefik.http.services.toc.loadbalancer.server.port=8000"
+      # Redirect HTTP -> HTTPS
+      - "traefik.http.routers.toc-http.rule=Host(`toc.murilonegrao.com`)"
+      - "traefik.http.routers.toc-http.entrypoints=web"
+      - "traefik.http.routers.toc-http.middlewares=toc-redirect"
+      - "traefik.http.middlewares.toc-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.toc-redirect.redirectscheme.permanent=true"
+    networks:
+      - internal
+      - traefik_network
+    volumes:
+      - static_files:/app/staticfiles
+
+  # ---------------------------------------------------------------------------
+  # Banco de Dados (PostgreSQL)
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    container_name: toc-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ---------------------------------------------------------------------------
+  # Armazenamento de Objetos (MinIO)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: toc-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+# =============================================================================
+# Volumes Persistentes
+# =============================================================================
+volumes:
+  postgres_data:
+  minio_data:
+  static_files:
+
+# =============================================================================
+# Redes
+# =============================================================================
+networks:
+  internal:
+    driver: bridge
+  traefik_network:
+    external: true

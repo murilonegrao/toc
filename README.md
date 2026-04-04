@@ -1,64 +1,64 @@
 # TOC — Template Orquestrador de Chamados
 
-Sistema de gestão de chamados desenvolvido para o Núcleo de Automação de Procedimentos do TJGO, integrado ao Orquestrador DPE.
+Sistema de gestão de chamados desenvolvido para o **Núcleo de Automação de Procedimentos do TJGO**, integrado ao Orquestrador DPE.
 
 ---
 
-## Stack
+## Stack Tecnológica
 
 - **Backend**: Django 6.x + Python 3.12
 - **Frontend**: Django Templates + HTMX 2.x + Alpine.js 3.x + Bootstrap 5.3
-- **Banco**: PostgreSQL 17
-- **Storage**: MinIO (dev) / AWS S3 (produção)
-- **Auth**: django-allauth com email como identificador
+- **Banco de Dados**: PostgreSQL 17
+- **Storage**: MinIO (Desenvolvimento) / AWS S3 (Produção)
+- **Autenticação**: django-allauth (utilizando email como identificador principal)
 
 ---
 
 ## Pré-requisitos
 
 - Python 3.12+
-- PostgreSQL 17 (container ou local)
-- MinIO (container)
-- Git
+- PostgreSQL 17 (via contêiner Docker ou instalação local)
+- MinIO (via contêiner Docker)
+- Git e Docker instalados
 
 ---
 
-## Setup de desenvolvimento
+## Setup de Desenvolvimento
 
-### 1. Clone o repositório
+### 1. Clonar o repositório
 
 ```bash
 git clone git@github.com:murilonegrao/toc.git
 cd toc
 ```
 
-### 2. Ambiente virtual
+### 2. Configurar o ambiente virtual
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
+source venv/bin/activate  # No Linux/Mac
+# venv\Scripts\activate   # No Windows
 ```
 
-### 3. Instale as dependências
+### 3. Instalar as dependências
 
 ```bash
 pip install -r requirements/development.txt
 ```
 
-### 4. Configure o `.env`
+### 4. Configurar as variáveis de ambiente
 
-Copie o exemplo e preencha com seus valores:
+Copie o arquivo de exemplo e preencha com seus ambientes locais:
 
 ```bash
 cp .env.example .env
 ```
 
-Variáveis obrigatórias:
+*Exemplo de variáveis obrigatórias no `.env`:*
 
-```
-SECRET_KEY=sua-secret-key
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/toc_database
+```env
+SECRET_KEY=sua-secret-key-muito-segura
+DATABASE_URL=postgresql://toc_user:sua_senha@localhost:5432/toc_database
 DJANGO_SETTINGS_MODULE=config.settings.development
 S3_ACCESS_KEY_ID=minioadmin
 S3_SECRET_ACCESS_KEY=minioadmin
@@ -67,7 +67,7 @@ S3_ENDPOINT_URL=http://localhost:9000
 S3_REGION_NAME=us-east-1
 ```
 
-### 5. Suba o PostgreSQL
+### 5. Iniciar o banco de dados (PostgreSQL)
 
 ```bash
 docker run -d \
@@ -79,7 +79,7 @@ docker run -d \
   postgres:17-alpine
 ```
 
-Depois conecte e dê o grant necessário (PostgreSQL 15+):
+Em seguida, acesse o contêiner e conceda as permissões necessárias (obrigatório para o PostgreSQL 15+):
 
 ```bash
 docker exec -it postgres psql -U postgres -d toc_database
@@ -89,7 +89,7 @@ docker exec -it postgres psql -U postgres -d toc_database
 GRANT ALL ON SCHEMA public TO toc_user;
 ```
 
-### 6. Suba o MinIO
+### 6. Iniciar o Storage Local (MinIO)
 
 ```bash
 docker run -d \
@@ -101,22 +101,27 @@ docker run -d \
   minio/minio server /data --console-address ":9001"
 ```
 
-Acesse `http://localhost:9001` e crie o bucket `toc-attachments`.
+Acesse o console do MinIO pelo navegador em `http://localhost:9001` e crie manualmente o bucket chamado `toc-attachments`.
 
-### 7. Rode as migrations
+### 7. Executar as migrações do banco
 
 ```bash
 python manage.py migrate
 ```
 
-### 8. Crie o superuser
+### 8. Criar o superusuário
+
+Acesse o shell interativo do Django:
 
 ```bash
 python manage.py shell
 ```
 
+E execute o comando para criar um perfil de administrador inicial:
+
 ```python
 from apps.accounts.models import User
+
 User.objects.create_superuser(
     email='admin@toc.com',
     password='sua_senha',
@@ -126,48 +131,53 @@ User.objects.create_superuser(
 )
 ```
 
-### 9. Crie departamentos iniciais
+### 9. Criar registros iniciais (Departamentos)
+
+Aproveitando o shell previamente aberto, cadastre alguns departamentos essenciais para testar o sistema:
 
 ```python
 from apps.departments.models import Department
+
 Department.objects.create(name='CAC', initials='CAC', color='#F4645F', active=True)
 Department.objects.create(name='CCARPV', initials='CCARPV', color='#4A90D9', active=True)
+
+exit()  # Pressione ENTER para sair do shell interativo
 ```
 
-### 10. Suba o servidor
+### 10. Iniciar o servidor de desenvolvimento
 
 ```bash
 python manage.py runserver
 ```
 
-Acesse `http://localhost:8000`.
+Acesse o sistema no navegador acessando `http://localhost:8000`.
 
 ---
 
-## Estrutura do projeto
+## Estrutura do Projeto
 
-```
+```text
 toc/
 ├── apps/
-│   ├── accounts/        # Usuários, autenticação, aprovação
-│   ├── attachments/     # Upload de arquivos (MinIO/S3)
-│   ├── comments/        # Comentários nos tickets
-│   ├── core/            # Dashboard e views genéricas
-│   ├── departments/     # Departamentos/Centrais
-│   ├── notifications/   # Log de notificações
-│   └── tickets/         # Chamados, status, histórico
+│   ├── accounts/        # Controle de usuários, autenticação e aprovações
+│   ├── attachments/     # Gerenciador de upload de arquivos para S3/MinIO
+│   ├── comments/        # Lógica de comentários e interações nos chamados
+│   ├── core/            # Dashboard principal e views genéricas base
+│   ├── departments/     # Gestão dos Departamentos / Centrais do TJGO
+│   ├── notifications/   # Log de atividades e disparos
+│   └── tickets/         # Módulo principal: Chamados (CRUD, status, histórico)
 ├── config/
 │   └── settings/
-│       ├── base.py      # Configurações comuns
-│       ├── development.py
-│       └── production.py
+│       ├── base.py        # Configurações globais e comuns
+│       ├── development.py # Configuração exclusiva de ambiente dev (debug ativado)
+│       └── production.py  # Configurações otimizadas para deploy em produção
 ├── static/
-│   └── css/main.css     # CSS principal
+│   └── css/main.css     # Estilos globais complementares (Vanilla CSS)
 ├── templates/
-│   ├── account/         # Templates do allauth (login, signup)
-│   ├── accounts/        # Templates do app accounts
-│   ├── tickets/         # Templates dos chamados
-│   └── base_app.html    # Template base com sidebar
+│   ├── account/         # Sobrescrita das views nativas do django-allauth
+│   ├── accounts/        # Templates customizados para o fluxo de contas (pending, etc)
+│   ├── tickets/         # Interfaces e formulários de chamados / kanban
+│   └── base_app.html    # Layout base contendo sidebar, topbar e tags base
 └── requirements/
     ├── base.txt
     ├── development.txt
@@ -176,44 +186,59 @@ toc/
 
 ---
 
-## Papéis de usuário
+## Papéis de Usuário (Roles)
 
-| Papel | Acesso |
+| Papel | Acesso / Permissões no Sistema |
 |---|---|
-| `admin` | Acesso total ao sistema |
-| `atendente` | Vê todos os chamados, aprova usuários |
-| `gestor_unidade` | Vê chamados do próprio departamento |
-| `cliente` | Vê só os próprios chamados |
+| `admin` | Acesso total e irrestrito ao sistema gerencial e Painel do Django Admin |
+| `atendente` | Permissão para visualizar/gerir todos os chamados e aprovar novos cadastros de usuários |
+| `gestor_unidade` | Visão ampla sobre os chamados gerados dentros de seus respectivos departamentos |
+| `cliente` | Visão restrita de apenas consultar e interagir com os seus próprios chamados |
 
 ---
 
-## Fluxo de status dos chamados
+## Fluxo de Status dos Chamados
 
+Abaixo está o ciclo de vida padrão que ocorre num andamento de um chamado:
+
+```text
+Aberto → Recebido → Em Desenvolvimento → Em Produção → Aguardando Cliente → Finalizado
+                  ↘ Não Atendido                     ↘ Não Atendido
 ```
-aberto → recebido → em_desenvolvimento → em_producao → aguardando_cliente → finalizado
-                ↘ nao_atendido          ↘ nao_atendido
+
+Para uma melhor visualização do fluxo de estados:
+
+```mermaid
+graph LR
+    A[Aberto] --> B[Recebido]
+    A --> N1[Não Atendido]
+    B --> C[Em Desenvolvimento]
+    C --> D[Em Produção]
+    C --> N2[Não Atendido]
+    D --> E[Aguardando Cliente]
+    E --> F[Finalizado]
 ```
 
 ---
 
-## Fluxo de cadastro
+## Fluxo de Cadastro de Usuários
 
-1. Usuário se cadastra em `/accounts/signup/`
-2. Seleciona o departamento em `/accounts/select-department/`
-3. Aguarda aprovação — tela `/accounts/pending/`
-4. Atendente ou admin aprova em `/accounts/pending-users/`
-5. Usuário ganha acesso ao sistema com o papel atribuído
+1. Usuário prospecto acessa as telas de Login e se cadastra na rota `/accounts/signup/`.
+2. Após salvar o usuário simples, ele deve escolher qual o departamento de alocação em `/accounts/select-department/`.
+3. Após isso, a conta do servidor do TJ ficará trancada em status **pendente**, redirecionando sempre sua página inicial para `/accounts/pending/`.
+4. Um atendente autorizado ou um administrador vai visualizar uma chamada em sua Dashboard em `Aprovações Pendentes` e clicar em `/accounts/pending-users/` para habilitar ou rejeitar a liberação de rede daquele cadastro.
+5. Após este _Ok_ de segurança, o usuário passará a integrar oficialmente a listagem acessando as funcionalidades em seu Papel ("Role") respectiva.
 
 ---
 
-## Convenções de commit
+## Convenções de Commits do Git
 
-Seguimos [Conventional Commits](https://www.conventionalcommits.org/):
+Este projeto impõe/sugere a prática de [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
-feat: nova funcionalidade
-fix: correção de bug
-chore: setup, configuração
-docs: documentação
-refactor: refatoração sem mudança de comportamento
-```
+| Padrão | Cenário a ser adotado |
+|---|---|
+| `feat:` | Utilizado no lançamento uma nova Feature ou Funcionalidade ao sistema |
+| `fix:` | Usado para a correção de algum comportamento anômalo/bug |
+| `chore:` | Utilizado quando foram feitos setups de ambiente, mudanças de lib/dependências ou script de configuração CI/CD |
+| `docs:` | Quando existem mudanças em documentações e comentários de forma expressiva e substancial (ex: atualizar o README) |
+| `refactor:` | Se ocorreu uma refatoração em base de lógica ou banco, sem alterar visivelmente o escopo comportamental final do software |

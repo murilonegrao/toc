@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Ambientes Locais
+.env
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Banco de dados e logs
+*.sqlite3
+*.log
+
+# Mídia e Estáticos (apenas os gerados por você ou buildados)
+media/
+staticfiles/
