@@ -39,8 +39,6 @@ services:
     networks:
       - internal
       - traefik_network
-    volumes:
-      - static_files:/app/staticfiles
 
   # ---------------------------------------------------------------------------
   # Banco de Dados (PostgreSQL)
@@ -93,7 +91,6 @@ services:
 volumes:
   postgres_data:
   minio_data:
-  static_files:
 
 # =============================================================================
 # Redes
