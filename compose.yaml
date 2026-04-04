@@ -26,12 +26,12 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.toc.rule=Host(`toc.murilonegrao.com`)"
+      - "traefik.http.routers.toc.rule=Host(`seudominio.com`)"
       - "traefik.http.routers.toc.entrypoints=websecure"
       - "traefik.http.routers.toc.tls.certresolver=myresolver"
       - "traefik.http.services.toc.loadbalancer.server.port=8000"
       # Redirect HTTP -> HTTPS
-      - "traefik.http.routers.toc-http.rule=Host(`toc.murilonegrao.com`)"
+      - "traefik.http.routers.toc-http.rule=Host(`seudominio.com`)"
       - "traefik.http.routers.toc-http.entrypoints=web"
       - "traefik.http.routers.toc-http.middlewares=toc-redirect"
       - "traefik.http.middlewares.toc-redirect.redirectscheme.scheme=https"
