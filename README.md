@@ -9,7 +9,7 @@ Sistema de gestão de chamados desenvolvido para o **Núcleo de Automação de P
 - **Backend**: Django 6.x + Python 3.12
 - **Frontend**: Django Templates + HTMX 2.x + Alpine.js 3.x + Bootstrap 5.3
 - **Banco de Dados**: PostgreSQL 17
-- **Storage**: MinIO (Desenvolvimento) / AWS S3 (Produção)
+- **Storage**: S3-compatible (via django-storages)
 - **Autenticação**: django-allauth (utilizando email como identificador principal)
 
 ---
@@ -18,7 +18,7 @@ Sistema de gestão de chamados desenvolvido para o **Núcleo de Automação de P
 
 - Python 3.12+
 - PostgreSQL 17 (via contêiner Docker ou instalação local)
-- MinIO (via contêiner Docker)
+- Serviço de storage compatível com S3 (via contêiner Docker)
 - Git e Docker instalados
 
 ---
@@ -48,60 +48,49 @@ pip install -r requirements/development.txt
 
 ### 4. Configurar as variáveis de ambiente
 
-Copie o arquivo de exemplo e preencha com seus ambientes locais:
+Copie o arquivo de exemplo e preencha com seus valores:
 
 ```bash
 cp .env.example .env
 ```
 
-*Exemplo de variáveis obrigatórias no `.env`:*
-
-```env
-SECRET_KEY=sua-secret-key-muito-segura
-DATABASE_URL=postgresql://toc_user:sua_senha@localhost:5432/toc_database
-DJANGO_SETTINGS_MODULE=config.settings.development
-S3_ACCESS_KEY_ID=minioadmin
-S3_SECRET_ACCESS_KEY=minioadmin
-S3_BUCKET_NAME=toc-attachments
-S3_ENDPOINT_URL=http://localhost:9000
-S3_REGION_NAME=us-east-1
-```
+Consulte o `.env.example` para ver todas as variáveis necessárias e seus formatos.
 
 ### 5. Iniciar o banco de dados (PostgreSQL)
 
 ```bash
 docker run -d \
-  --name postgres \
+  --name toc-postgres \
   -p 5432:5432 \
-  -e POSTGRES_USER=toc_user \
-  -e POSTGRES_PASSWORD=sua_senha \
-  -e POSTGRES_DB=toc_database \
+  -e POSTGRES_USER=your_database_user \
+  -e POSTGRES_PASSWORD=your_database_password \
+  -e POSTGRES_DB=your_database_name \
   postgres:17-alpine
 ```
 
 Em seguida, acesse o contêiner e conceda as permissões necessárias (obrigatório para o PostgreSQL 15+):
 
 ```bash
-docker exec -it postgres psql -U postgres -d toc_database
+docker exec -it toc-postgres psql -U your_database_user -d your_database_name
 ```
 
 ```sql
-GRANT ALL ON SCHEMA public TO toc_user;
+GRANT ALL ON SCHEMA public TO your_database_user;
 ```
 
-### 6. Iniciar o Storage Local (MinIO)
+### 6. Iniciar o Storage Local
 
 ```bash
 docker run -d \
-  --name minio \
+  --name toc-storage \
   -p 9000:9000 \
   -p 9001:9001 \
-  -e MINIO_ROOT_USER=minioadmin \
-  -e MINIO_ROOT_PASSWORD=minioadmin \
+  -e MINIO_ROOT_USER=your_access_key \
+  -e MINIO_ROOT_PASSWORD=your_secret_key \
   minio/minio server /data --console-address ":9001"
 ```
 
-Acesse o console do MinIO pelo navegador em `http://localhost:9001` e crie manualmente o bucket chamado `toc-attachments`.
+Acesse o console pelo navegador em `http://localhost:9001` e crie manualmente o bucket configurado no seu `.env`.
 
 ### 7. Executar as migrações do banco
 
@@ -123,7 +112,7 @@ E execute o comando para criar um perfil de administrador inicial:
 from apps.accounts.models import User
 
 User.objects.create_superuser(
-    email='admin@toc.com',
+    email='admin@example.com',
     password='sua_senha',
     name='Admin TOC',
     role='admin',
@@ -138,8 +127,8 @@ Aproveitando o shell previamente aberto, cadastre alguns departamentos essenciai
 ```python
 from apps.departments.models import Department
 
-Department.objects.create(name='CAC', initials='CAC', color='#F4645F', active=True)
-Department.objects.create(name='CCARPV', initials='CCARPV', color='#4A90D9', active=True)
+Department.objects.create(name='Departamento A', initials='DA', color='#F4645F', active=True)
+Department.objects.create(name='Departamento B', initials='DB', color='#4A90D9', active=True)
 
 exit()  # Pressione ENTER para sair do shell interativo
 ```
@@ -154,13 +143,42 @@ Acesse o sistema no navegador acessando `http://localhost:8000`.
 
 ---
 
+## Deploy com Docker Compose
+
+O projeto inclui `Dockerfile` e `compose.yaml` prontos para produção.
+
+### 1. Configurar as variáveis de ambiente
+
+```bash
+cp .env.example .env
+# Edite o .env com as credenciais reais do ambiente de produção
+```
+
+### 2. Subir os serviços
+
+```bash
+docker compose up -d --build
+```
+
+Isso irá iniciar os serviços de **app**, **banco de dados** e **storage**. O app executa automaticamente as migrações e o `collectstatic` antes de servir via Gunicorn.
+
+### 3. Criar o superusuário no container
+
+```bash
+docker compose exec app python manage.py shell
+```
+
+E siga o passo 8 do Setup de Desenvolvimento (acima).
+
+---
+
 ## Estrutura do Projeto
 
 ```text
 toc/
 ├── apps/
 │   ├── accounts/        # Controle de usuários, autenticação e aprovações
-│   ├── attachments/     # Gerenciador de upload de arquivos para S3/MinIO
+│   ├── attachments/     # Gerenciador de upload de arquivos para S3
 │   ├── comments/        # Lógica de comentários e interações nos chamados
 │   ├── core/            # Dashboard principal e views genéricas base
 │   ├── departments/     # Gestão dos Departamentos / Centrais do TJGO
@@ -171,17 +189,27 @@ toc/
 │       ├── base.py        # Configurações globais e comuns
 │       ├── development.py # Configuração exclusiva de ambiente dev (debug ativado)
 │       └── production.py  # Configurações otimizadas para deploy em produção
-├── static/
-│   └── css/main.css     # Estilos globais complementares (Vanilla CSS)
 ├── templates/
 │   ├── account/         # Sobrescrita das views nativas do django-allauth
-│   ├── accounts/        # Templates customizados para o fluxo de contas (pending, etc)
+│   ├── accounts/        # Templates customizados para o fluxo de contas
+│   ├── comments/        # Templates e partials de comentários
+│   ├── core/            # Dashboard e views genéricas
+│   ├── departments/     # Templates e partials de departamentos
 │   ├── tickets/         # Interfaces e formulários de chamados / kanban
-│   └── base_app.html    # Layout base contendo sidebar, topbar e tags base
-└── requirements/
-    ├── base.txt
-    ├── development.txt
-    └── production.txt
+│   ├── base_app.html    # Layout base contendo sidebar, topbar e tags base
+│   ├── base_pending.html # Layout para tela de aprovação pendente
+│   └── base_public.html  # Layout para telas públicas (login, signup)
+├── static/
+│   └── css/main.css     # Estilos globais complementares (Vanilla CSS)
+├── requirements/
+│   ├── base.txt
+│   ├── development.txt
+│   └── production.txt
+├── compose.yaml         # Docker Compose para deploy
+├── Dockerfile           # Imagem de produção da aplicação
+├── .dockerignore        # Arquivos excluídos do build Docker
+├── .env.example         # Modelo de variáveis de ambiente
+└── manage.py            # CLI do Django
 ```
 
 ---
@@ -192,7 +220,7 @@ toc/
 |---|---|
 | `admin` | Acesso total e irrestrito ao sistema gerencial e Painel do Django Admin |
 | `atendente` | Permissão para visualizar/gerir todos os chamados e aprovar novos cadastros de usuários |
-| `gestor_unidade` | Visão ampla sobre os chamados gerados dentros de seus respectivos departamentos |
+| `gestor_unidade` | Visão ampla sobre os chamados gerados dentro de seus respectivos departamentos |
 | `cliente` | Visão restrita de apenas consultar e interagir com os seus próprios chamados |
 
 ---
