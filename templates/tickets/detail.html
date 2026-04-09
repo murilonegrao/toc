@@ -199,7 +199,7 @@
                                     {{ attachment.size|filesizeformat }}
                                 </small>
                             </div>
-                            <a href="{{ attachment.file.url }}" target="_blank" class="btn btn-sm btn-secondary">
+                            <a href="{% url 'attachments:download' attachment.id %}" target="_blank" class="btn btn-sm btn-secondary">
                                 <i class="bi bi-download"></i>
                             </a>
                         </li>

@@ -1,3 +1,7 @@
+import boto3
+from django.http import StreamingHttpResponse, Http404
+from botocore.exceptions import ClientError
+from django.conf import settings
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -61,3 +65,30 @@ def normalize_filename(filename):
     name = re.sub(r'[^\w\-]', '_', name)
     #adiciona uuid para evitar colisão
     return f'{name}_{uuid.uuid4().hex[:8]}{ext.lower()}'
+
+
+@login_required
+def download_attachment(request, attachment_id):
+    attachment = get_object_or_404(Attachment, id=attachment_id)
+
+    s3 = boto3.client(
+        's3',
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,    
+    )
+
+
+    try:
+        obj = s3.get_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=attachment.file.name
+        )
+        response = StreamingHttpResponse(
+            obj['Body'].iter_chunks(),
+            content_type=attachment.mime_type or 'application/octet-stream',
+        )
+        response['Content-Disposition'] = f'attachment; filename="{attachment.original_name}"'
+        return response
+    except ClientError:
+        raise Http404("Arquivo não encontrado.")
