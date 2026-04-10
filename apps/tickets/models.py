@@ -8,6 +8,8 @@ class Ticket(models.Model):
     class Type(models.TextChoices):
         SYSTEM = 'ORQUESTRADOR', 'Orquestrador'
         AUTOMATION = 'AUTOMACAO', 'Automacao'
+        TICKETS = 'TOC', 'Toc'
+        SHIFT = 'PLANTAO', 'Plantão'
         
     class Subtype(models.TextChoices):
         BUG_CORRECTION = 'correcao_bug', 'Correção'
