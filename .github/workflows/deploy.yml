@@ -1,0 +1,52 @@
+name: Deploy TOC
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Testes
+    runs-on: self-hosted
+
+    env:
+      SECRET_KEY: fake-key-for-tests
+      DATABASE_URL: sqlite:///:memory:
+      S3_ACCESS_KEY_ID: dummy
+      S3_SECRET_ACCESS_KEY: dummy
+      S3_BUCKET_NAME: dummy
+      S3_ENDPOINT_URL: http://dummy
+      S3_REGION_NAME: us-east-1
+      DJANGO_SETTINGS_MODULE: config.settings.development
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instala dependências
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements/development.txt
+
+      - name: Roda testes
+        run: |
+          source .venv/bin/activate
+          python manage.py test --verbosity=2
+
+  deploy:
+    name: Deploy
+    runs-on: self-hosted
+    needs: test
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        run: |
+          cd /opt/toc
+          git pull origin main
+          docker compose up -d --build app
+          docker compose exec -T app python manage.py migrate --noinput
