@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from datetime import timedelta
 
 # Create your models here.
 
@@ -53,6 +54,23 @@ class Ticket(models.Model):
     notify_by_email = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    assignees = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='assigned_tickets',
+        limit_choices_to={'role_in': ['admin', 'atendente']},
+    )
+    estimated_days = models.PositiveIntegerField(null=True, blank=True)
+    development_started_at = models.DateTimeField(null=True, blank=True)
+    development_finished_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def estimated_completion_date(self):
+        if self.development_started_at and self.estimated_days:
+            return self.development_started_at + timedelta(days=self.estimated_days)
+        return None
+
 
     def __str__(self):
         return f'#{self.protocol} - {self.subject}'

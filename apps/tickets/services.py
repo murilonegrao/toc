@@ -1,6 +1,7 @@
 from django.db import transaction, models
 from .models import Ticket, TicketStatusLog
 from apps.accounts.models import UserDepartment
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 
@@ -28,6 +29,8 @@ def change_ticket_status(ticket, new_status, user, justification=None):
         if new_status == Ticket.Status.NOT_ATTENDED and not justification:
             raise ValueError('Justificativa obrigatória para marcar como Não Atendido.')
         
+        if new_status == 'em_desenvolvimento' and not ticket.development_started_at:
+            ticket.development_started_at = timezone.now()
         #cria o log de status
         TicketStatusLog.objects.create(
             ticket=ticket,

@@ -204,7 +204,8 @@
                                     {{ attachment.size|filesizeformat }}
                                 </small>
                             </div>
-                            <a href="{% url 'attachments:download' attachment.id %}" target="_blank" class="btn btn-sm btn-secondary">
+                            <a href="{% url 'attachments:download' attachment.id %}" target="_blank"
+                                class="btn btn-sm btn-secondary">
                                 <i class="bi bi-download"></i>
                             </a>
                         </li>
@@ -239,32 +240,103 @@
     <div class="col-md-4">
 
         <!-- Mudar status -->
-        {% if transitions and request.user.role in 'admin,atendente' %}
+        {% if transitions and pode_responder %}
+        {% if request.user.role in 'admin,atendente' or ticket.status == 'aguardando_cliente' %}
         <div class="card mb-3">
-            <div class="card-header">Mudar Status</div>
+            <div class="card-header">
+                {% if ticket.status == 'aguardando_cliente' %}
+                Resposta ao chamado
+                {% else %}
+                Mudar Status
+                {% endif %}
+            </div>
             <div class="card-body">
-                <form method="POST" action="{% url 'tickets:change_status' ticket.id %}" x-data="{novoStatus: ''}">
+                <form method="POST" action="{% url 'tickets:change_status' ticket.id %}" x-data="{ novoStatus: '' }">
                     {% csrf_token %}
+
                     <div class="mb-3">
-                        <label class="form-label">Novo status</label>
+                        <label class="form-label">
+                            {% if ticket.status == 'aguardando_cliente' %}
+                            O que deseja fazer?
+                            {% else %}
+                            Novo status
+                            {% endif %}
+                        </label>
                         <select name="new_status" class="form-select" x-model="novoStatus" required>
                             <option value="">Selecione...</option>
                             {% for status in transitions %}
-                            <option value="{{ status }}">{{ status }}</option>
+                            <option value="{{ status }}">
+                                {% if ticket.status == 'aguardando_cliente' %}
+                                {% if status == 'finalizado' %}Confirmar — está funcionando
+                                {% elif status == 'em_desenvolvimento' %}Devolver — ainda tem problemas
+                                {% else %}{{ status }}
+                                {% endif %}
+                                {% else %}
+                                {{ status }}
+                                {% endif %}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
+
+                    <!-- Atendentes — aparece quando recebido -->
+                    {% if request.user.role in 'admin,atendente' %}
+                    <div class="mb-3" x-show="novoStatus === 'recebido'" x-cloak>
+                        <label class="form-label">Atendente(s) responsável(is)</label>
+                        <select name="assignees" class="form-select" multiple>
+                            {% for atendente in atendentes %}
+                            <option value="{{ atendente.id }}" {% if atendente in ticket.assignees.all %}selected{% endif %}>
+                                {{ atendente.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text" style="color:#9ca3af; font-size:0.72rem;">
+                            Segure Ctrl para selecionar mais de um
+                        </div>
+                    </div>
+
+                    <!-- Prazo — aparece quando recebido -->
+                    <div class="mb-3" x-show="novoStatus === 'recebido'" x-cloak>
+                        <label class="form-label">Prazo estimado (dias)</label>
+                        <input type="number" name="estimated_days" class="form-control" min="1" max="365"
+                            value="{{ ticket.estimated_days|default:'' }}" placeholder="Ex: 5">
+                        <div class="form-text" style="color:#9ca3af; font-size:0.72rem;">
+                            Contagem inicia quando entrar em desenvolvimento
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Justificativa — devolver ao desenvolvimento -->
+                    <div class="mb-3" x-show="novoStatus === 'em_desenvolvimento'" x-cloak>
+                        <label class="form-label">
+                            Descreva o problema <span style="color:#F4645F;">*</span>
+                        </label>
+                        <textarea name="justification" class="form-control" rows="4"
+                            placeholder="Descreva o que ainda não está funcionando..."></textarea>
+                        {% if ticket.status == 'aguardando_cliente' %}
+                        <div class="form-text" style="color:#9ca3af; font-size:0.72rem;">
+                            Você também pode anexar arquivos no card de anexos abaixo.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Justificativa — nao_atendido -->
+                    {% if request.user.role in 'admin,atendente' %}
                     <div class="mb-3" x-show="novoStatus === 'nao_atendido'" x-cloak>
-                        <label class="form-label">Justificativa <span style="color:#F4645F;">*</span></label>
+                        <label class="form-label">
+                            Justificativa <span style="color:#F4645F;">*</span>
+                        </label>
                         <textarea name="justification" class="form-control" rows="3"
                             placeholder="Obrigatório para não atendido"></textarea>
                     </div>
+                    {% endif %}
+
                     <button type="submit" class="btn btn-primary w-100">Confirmar</button>
                 </form>
             </div>
         </div>
         {% endif %}
-
+        {% endif %}
         <!-- Informações laterais -->
         <div class="card">
             <div class="card-header">Informações</div>
