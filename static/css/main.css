@@ -745,3 +745,25 @@ body.auth-body {
 .kanban-col-drop-forbidden .kanban-col-body {
     pointer-events: none;
 }
+
+.ticket-row {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.ticket-row:hover {
+    background-color: #f0f4ff !important;
+}
+
+.ticket-row:hover td {
+    color: #1f2937;
+}
+
+.kanban-card-alta {
+    border-left: 3px solid #f59e0b;
+}
+
+.kanban-card-urgente {
+    border-left: 3px solid #ef4444;
+    background-color: #fff8f8;
+}

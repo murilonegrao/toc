@@ -4,35 +4,39 @@
 
 {% block extra_css %}
 <style>
-html, body { height: 100%; overflow: hidden; }
+    html,
+    body {
+        height: 100%;
+        overflow: hidden;
+    }
 
-.main-wrapper {
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
+    .main-wrapper {
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
 
-.main-content {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 0;
-}
+    .main-content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0;
+    }
 
-.kanban-wrapper {
-    flex: 1;
-    min-height: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-}
+    .kanban-wrapper {
+        flex: 1;
+        min-height: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
 
-.kanban-col {
-    height: 100%;
-    max-height: none;
-}
+    .kanban-col {
+        height: 100%;
+        max-height: none;
+    }
 </style>
 {% endblock %}
 
@@ -60,17 +64,19 @@ html, body { height: 100%; overflow: hidden; }
         <div class="kanban-col-body" id="col-{{ status }}">
             {% for ticket in col.tickets %}
             <a href="{% url 'tickets:detail' ticket.id %}"
-               class="kanban-card"
-               data-ticket-id="{{ ticket.id }}"
-               data-current-status="{{ status }}">
+                class="kanban-card {% if ticket.priority == 'urgente' %}kanban-card-urgente{% elif ticket.priority == 'alta' %}kanban-card-alta{% endif %}"
+                data-ticket-id="{{ ticket.id }}" data-current-status="{{ status }}">
 
-                <div class="kanban-card-protocol">#{{ ticket.protocol }}</div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="kanban-card-protocol">#{{ ticket.protocol }}</div>
+                    <div class="kanban-card-protocol">{{ ticket.created_at|date:"d/m/Y" }}</div>
+                </div>
 
                 <div class="kanban-card-subject">{{ ticket.subject }}</div>
 
                 <div class="kanban-card-meta">
                     <span class="kanban-card-dept"
-                          style="background-color: {{ ticket.department.color }}20; color: {{ ticket.department.color }};">
+                        style="background-color: {{ ticket.department.color }}20; color: {{ ticket.department.color }};">
                         {{ ticket.department.initials }}
                     </span>
                     <div class="d-flex align-items-center gap-1">
@@ -79,8 +85,7 @@ html, body { height: 100%; overflow: hidden; }
                     </div>
                 </div>
 
-            </a>
-            {% empty %}
+            </a> {% empty %}
             <div class="kanban-empty">
                 <i class="bi bi-inbox" style="font-size:1.2rem; display:block; margin-bottom:0.3rem;"></i>
                 Nenhum chamado
@@ -104,8 +109,7 @@ html, body { height: 100%; overflow: hidden; }
                 <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">
                     Informe o motivo para marcar como <strong>Não Atendido</strong>:
                 </p>
-                <textarea id="justification-text" class="form-control" rows="3"
-                          placeholder="Motivo..."></textarea>
+                <textarea id="justification-text" class="form-control" rows="3" placeholder="Motivo..."></textarea>
             </div>
             <div class="modal-footer" style="border-top:1px solid #f3f4f6;">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -132,15 +136,16 @@ html, body { height: 100%; overflow: hidden; }
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
 <script>
-(function() {
-    const TRANSITIONS = {{ transitions_json|safe }};
+    (function () {
+        const TRANSITIONS = {{ transitions_json| safe
+    }};
     const CSRF = '{{ csrf_token }}';
     const MOVE_URL_TPL = '{% url "tickets:kanban_move" ticket_id=0 %}'.replace('/0/', '/{id}/');
 
     // Toast helper
     function showToast(msg, ok) {
         const toast = document.getElementById('kanban-toast');
-        const body  = document.getElementById('kanban-toast-body');
+        const body = document.getElementById('kanban-toast-body');
         body.textContent = msg;
         toast.className = 'toast align-items-center border-0 text-bg-' + (ok ? 'success' : 'danger');
         new bootstrap.Toast(toast).show();
@@ -150,8 +155,8 @@ html, body { height: 100%; overflow: hidden; }
     function updateCounts() {
         document.querySelectorAll('.kanban-col').forEach(col => {
             const status = col.dataset.status;
-            const count  = col.querySelector('.kanban-col-body').querySelectorAll('.kanban-card').length;
-            const badge  = document.getElementById('count-' + status);
+            const count = col.querySelector('.kanban-col-body').querySelectorAll('.kanban-card').length;
+            const badge = document.getElementById('count-' + status);
             if (badge) badge.textContent = count;
         });
     }
@@ -211,7 +216,7 @@ html, body { height: 100%; overflow: hidden; }
             delay: 150,
             delayOnTouchOnly: true,
 
-            onStart: function(evt) {
+            onStart: function (evt) {
                 const fromStatus = evt.from.closest('.kanban-col').dataset.status;
 
                 // Adiciona indicador visual nas colunas permitidas
@@ -226,16 +231,16 @@ html, body { height: 100%; overflow: hidden; }
                 });
             },
 
-            onEnd: function(evt) {
+            onEnd: function (evt) {
                 // Limpa indicadores visuais
                 document.querySelectorAll('.kanban-col').forEach(col => {
                     col.classList.remove('kanban-col-drop-allowed', 'kanban-col-drop-forbidden');
                 });
 
-                const card      = evt.item;
-                const ticketId  = card.dataset.ticketId;
-                const fromCol   = evt.from.closest('.kanban-col');
-                const toCol     = evt.to.closest('.kanban-col');
+                const card = evt.item;
+                const ticketId = card.dataset.ticketId;
+                const fromCol = evt.from.closest('.kanban-col');
+                const toCol = evt.to.closest('.kanban-col');
                 const newStatus = toCol.dataset.status;
                 const oldStatus = card.dataset.currentStatus;
 
@@ -288,7 +293,7 @@ html, body { height: 100%; overflow: hidden; }
     });
 
     // Confirmar justificativa
-    document.getElementById('confirm-justification').addEventListener('click', function() {
+    document.getElementById('confirm-justification').addEventListener('click', function () {
         if (!pendingMove) return;
         const justification = document.getElementById('justification-text').value.trim();
         if (!justification) {
@@ -325,7 +330,7 @@ html, body { height: 100%; overflow: hidden; }
     });
 
     // Se cancelar o modal, volta o card
-    document.getElementById('justificationModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('justificationModal').addEventListener('hidden.bs.modal', function () {
         if (!pendingMove) return;
         const { card, fromBody } = pendingMove;
         fromBody.appendChild(card);
@@ -334,6 +339,6 @@ html, body { height: 100%; overflow: hidden; }
         pendingMove = null;
     });
 
-})();
+}) ();
 </script>
 {% endblock %}
