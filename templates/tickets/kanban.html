@@ -63,9 +63,10 @@
 
         <div class="kanban-col-body" id="col-{{ status }}">
             {% for ticket in col.tickets %}
-            <a href="{% url 'tickets:detail' ticket.id %}"
+            <a href="{% url 'tickets:detail' ticket.id %}?next={{ request.path }}"
                 class="kanban-card {% if ticket.priority == 'urgente' %}kanban-card-urgente{% elif ticket.priority == 'alta' %}kanban-card-alta{% endif %}"
-                data-ticket-id="{{ ticket.id }}" data-current-status="{{ status }}">
+                data-ticket-id="{{ ticket.id }}" data-current-status="{{ status }}"
+                data-created="{{ ticket.created_at|date:'Y-m-d H:i:s' }}">
 
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <div class="kanban-card-protocol">#{{ ticket.protocol }}</div>
@@ -150,6 +151,28 @@
         new bootstrap.Toast(toast).show();
     }
 
+    function reorderCol(colBody) {
+        const PRIORITY = { 'urgente': 0, 'alta': 1, 'normal': 2 };
+        const cards = Array.from(colBody.querySelectorAll('.kanban-card'));
+
+        cards.sort((a, b) => {
+            // Pega prioridade pelo class
+            const getPriority = el => {
+                if (el.classList.contains('kanban-card-urgente')) return 0;
+                if (el.classList.contains('kanban-card-alta')) return 1;
+                return 2;
+            };
+            // Pega data pelo data-created
+            const getDate = el => el.dataset.created || '';
+
+            const pa = getPriority(a), pb = getPriority(b);
+            if (pa !== pb) return pa - pb;
+            return getDate(a).localeCompare(getDate(b));
+        });
+
+        cards.forEach(card => colBody.appendChild(card));
+    }
+
     // Atualiza contadores
     function updateCounts() {
         document.querySelectorAll('.kanban-col').forEach(col => {
@@ -175,6 +198,12 @@
                     </div>`;
             }
         });
+    }
+
+    function updateAll() {
+        document.querySelectorAll('.kanban-col-body').forEach(reorderCol);
+        updateCounts();
+        updateEmptyStates();
     }
 
     // Verifica se a transição é permitida
@@ -251,8 +280,7 @@
                 if (!canDrop(oldStatus, newStatus)) {
                     // Volta o card para a coluna original
                     evt.from.appendChild(card);
-                    updateCounts();
-                    updateEmptyStates();
+                    updateAll();
                     showToast('Transição não permitida: ' + oldStatus + ' → ' + newStatus, false);
                     return;
                 }
@@ -272,20 +300,17 @@
                     card.classList.remove('kanban-card-loading');
                     if (data.ok) {
                         card.dataset.currentStatus = newStatus;
-                        updateCounts();
-                        updateEmptyStates();
+                        updateAll();
                         showToast('Chamado movido com sucesso!', true);
                     } else {
                         evt.from.appendChild(card);
-                        updateCounts();
-                        updateEmptyStates();
+                        updateAll();
                         showToast(data.error || 'Erro ao mover.', false);
                     }
                 }).catch(() => {
                     card.classList.remove('kanban-card-loading');
                     evt.from.appendChild(card);
-                    updateCounts();
-                    updateEmptyStates();
+                    updateAll();
                     showToast('Erro de conexão.', false);
                 });
             }
@@ -318,20 +343,17 @@
             card.classList.remove('kanban-card-loading');
             if (data.ok) {
                 card.dataset.currentStatus = newStatus;
-                updateCounts();
-                updateEmptyStates();
+                updateAll();
                 showToast('Chamado movido com sucesso!', true);
             } else {
                 fromBody.appendChild(card);
-                updateCounts();
-                updateEmptyStates();
+                updateAll();
                 showToast(data.error || 'Erro ao mover.', false);
             }
         }).catch(() => {
             card.classList.remove('kanban-card-loading');
             fromBody.appendChild(card);
-            updateCounts();
-            updateEmptyStates();
+            updateAll();
             showToast('Erro de conexão.', false);
         });
         pendingMove = null;
@@ -342,8 +364,7 @@
         if (!pendingMove) return;
         const { card, fromBody } = pendingMove;
         fromBody.appendChild(card);
-        updateCounts();
-        updateEmptyStates();
+        updateAll();
         pendingMove = null;
     });
 

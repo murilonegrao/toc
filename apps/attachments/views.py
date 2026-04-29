@@ -5,6 +5,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.urls import reverse
 from .models import Attachment
 from apps.tickets.models import Ticket
 import uuid
@@ -26,21 +27,25 @@ def upload_attachment(request, ticket_id):
         visible = services.get_tickets_for_user(request.user)
         if not visible.filter(id=ticket_id).exists():
             return redirect('/')
+
+        next_url = request.POST.get('next') or '/'
+        detail_url = reverse('tickets:detail', kwargs={'ticket_id': ticket_id})
+        return_url = f"{detail_url}?next={next_url}"
             
         file = request.FILES.get('file')
 
         if not file:
             messages.error(request, 'Nenhum arquivo selecionado.')
-            return redirect('tickets:detail', ticket_id=ticket_id)
+            return redirect(return_url)
             
         ext = os.path.splitext(file.name)[1].lower()
         if ext not in ALLOWED_EXTENSIONS:
             messages.error(request, f'Tipo de arquivo não permitido ({ext}).')
-            return redirect('tickets:detail', ticket_id=ticket_id)
+            return redirect(return_url)
 
         if file.size > 10 * 1024 * 1024:
             messages.error(request, 'O arquivo excede o tamanho máximo de 10MB.')
-            return redirect('tickets:detail', ticket_id=ticket_id)
+            return redirect(return_url)
 
         file.name = normalize_filename(file.name)
 
@@ -54,8 +59,8 @@ def upload_attachment(request, ticket_id):
         )
 
         messages.success(request, f'Arquivo {file.name} enviado com sucesso.')
-        return redirect('tickets:detail', ticket_id=ticket_id)
-        
+        return redirect(return_url)
+
 
 def normalize_filename(filename):
     #remove acentos

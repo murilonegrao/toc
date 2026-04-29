@@ -45,7 +45,7 @@
             </thead>
             <tbody>
                 {% for ticket in tickets %}
-                <tr class="ticket-row" data-href="{% url 'tickets:detail' ticket.id %}">
+                <tr class="ticket-row" data-href="{% url 'tickets:detail' ticket.id %}?next={{ request.path }}">
                     <td><strong>#{{ ticket.protocol }}</strong></td>
                     <td>{{ ticket.subject }}</td>
                     <td>{{ ticket.department.initials }}</td>

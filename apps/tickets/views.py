@@ -7,6 +7,8 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.db.models import Case, When, Value, IntegerField
+from django.urls import reverse
 
 from .models import Ticket
 from .forms import TicketForm
@@ -40,6 +42,10 @@ def ticket_list(request):
 
 @login_required
 def ticket_detail(request, ticket_id):
+    if request.method == 'GET':
+        request.session['ticket_return_url'] = request.META.get('HTTP_REFERER', '/')
+
+    
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
     visible = services.get_tickets_for_user(request.user)
@@ -86,6 +92,7 @@ def ticket_detail(request, ticket_id):
         'atendentes': atendentes,
         'pode_responder': pode_responder,
         'is_gestor_da_unidade': is_gestor_da_unidade,
+        'return_url': request.session.get('ticket_return_url', '/'),
     })
 
 
@@ -134,7 +141,10 @@ def ticket_change_status(request, ticket_id):
         if not visible.filter(id=ticket_id).exists():
             return redirect('/')
 
-        # Verifica permissão para a transição
+        next_url = request.POST.get('next') or '/'
+        detail_url = reverse('tickets:detail', kwargs={'ticket_id': ticket_id})
+        return_url = f"{detail_url}?next={next_url}"
+
         is_gestor_da_unidade = (
             request.user.role == 'gestor_unidade' and
             UserDepartment.objects.filter(
@@ -153,7 +163,7 @@ def ticket_change_status(request, ticket_id):
 
         if not can_change_status:
             messages.error(request, 'Sem permissão para alterar o status deste chamado.')
-            return redirect('tickets:detail', ticket_id=ticket_id)
+            return redirect(return_url)
 
         new_status = request.POST.get('new_status')
         justification = request.POST.get('justification', '')
@@ -166,12 +176,10 @@ def ticket_change_status(request, ticket_id):
                 justification=justification,
             )
 
-            # Atualiza atendentes responsáveis
             assignees = request.POST.getlist('assignees')
             if assignees:
                 ticket.assignees.set(assignees)
 
-            # Atualiza prazo estimado
             estimated_days = request.POST.get('estimated_days')
             if estimated_days:
                 ticket.estimated_days = int(estimated_days)
@@ -181,7 +189,7 @@ def ticket_change_status(request, ticket_id):
         except ValueError as e:
             messages.error(request, str(e))
 
-    return redirect('tickets:detail', ticket_id=ticket_id)
+    return redirect(return_url)
 
 
 @login_required
@@ -190,7 +198,15 @@ def ticket_kanban(request):
         messages.error(request, 'Você não tem permissão para acessar o kanban.')
         return redirect('tickets:list')
 
-    tickets = Ticket.objects.all().select_related('author', 'department').order_by('-created_at')
+    tickets = Ticket.objects.all().select_related('author', 'department').annotate(
+        priority_order=Case(
+            When(priority='urgente', then=Value(0)),
+            When(priority='alta', then=Value(1)),
+            When(priority='normal', then=Value(2)),
+            default=Value(3),
+            output_field=IntegerField(),
+        )
+    ).order_by('priority_order', 'created_at')
 
     kanban = {}
     for status, label in Ticket.Status.choices:
