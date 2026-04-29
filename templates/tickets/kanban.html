@@ -137,8 +137,7 @@
 
 <script>
     (function () {
-        const TRANSITIONS = {{ transitions_json| safe
-    }};
+        const TRANSITIONS = {{ transitions_json| safe }};
     const CSRF = '{{ csrf_token }}';
     const MOVE_URL_TPL = '{% url "tickets:kanban_move" ticket_id=0 %}'.replace('/0/', '/{id}/');
 
@@ -201,6 +200,9 @@
     // Variáveis para a justificativa
     let pendingMove = null;
 
+    let isDragging = false;
+
+
     // Inicializa SortableJS em cada coluna
     document.querySelectorAll('.kanban-col-body').forEach(body => {
         new Sortable(body, {
@@ -210,17 +212,13 @@
             chosenClass: 'kanban-card-chosen',
             dragClass: 'kanban-card-drag',
             filter: '.kanban-empty',
-
-            // Impede links de abrir ao arrastar
             preventOnFilter: false,
             delay: 150,
             delayOnTouchOnly: true,
 
             onStart: function (evt) {
-                evt.item.style.pointerEvents = 'none';
+                isDragging = true;
                 const fromStatus = evt.from.closest('.kanban-col').dataset.status;
-
-                // Adiciona indicador visual nas colunas permitidas
                 document.querySelectorAll('.kanban-col').forEach(col => {
                     const s = col.dataset.status;
                     if (s === fromStatus) return;
@@ -233,7 +231,7 @@
             },
 
             onEnd: function (evt) {
-                evt.item.style.pointerEvents = '';
+                setTimeout(() => { isDragging = false; }, 100);
                 // Limpa indicadores visuais
                 document.querySelectorAll('.kanban-col').forEach(col => {
                     col.classList.remove('kanban-col-drop-allowed', 'kanban-col-drop-forbidden');
@@ -293,6 +291,14 @@
             }
         });
     });
+
+    // Previne navegação ao clicar durante drag
+    document.querySelectorAll('.kanban-col-body').forEach(body => {
+        body.addEventListener('click', function (e) {
+            if (isDragging) e.preventDefault();
+        }, true);
+    });
+
 
     // Confirmar justificativa
     document.getElementById('confirm-justification').addEventListener('click', function () {
