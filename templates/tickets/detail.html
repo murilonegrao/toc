@@ -162,8 +162,8 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="mb-2">
-                        <textarea name="content" class="form-control" rows="3"
-                            placeholder="Escreva um comentário..." required></textarea>
+                        <textarea name="content" class="form-control" rows="3" placeholder="Escreva um comentário..."
+                            required></textarea>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
                         {% if request.user.role in 'admin,atendente' %}
@@ -204,18 +204,21 @@
                             </div>
                             <div class="d-flex gap-2">
                                 {% with name=attachment.original_name|lower %}
-                                {% if name|slice:"-4:" == ".pdf" or name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" == ".jpeg" or name|slice:"-4:" == ".gif" or name|slice:"-5:" == ".html" %}
-                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                    data-bs-toggle="modal"
+                                {% if name|slice:"-4:" == ".pdf" %}
+                                <a href="{% url 'attachments:preview' attachment.id %}" target="_blank"
+                                    class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% elif name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" ==
+                                ".jpeg" or name|slice:"-4:" == ".gif" or name|slice:"-5:" == ".html" %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                                     data-bs-target="#previewModal"
                                     data-url="{% url 'attachments:preview' attachment.id %}"
-                                    data-name="{{ attachment.original_name }}"
-                                    data-type="{{ name|slice:'-4:' }}">
+                                    data-name="{{ attachment.original_name }}" data-type="{{ name|slice:'-4:' }}">
                                     <i class="bi bi-eye"></i>
                                 </button>
                                 {% endif %}
-                                {% endwith %}
-                                <a href="{% url 'attachments:download' attachment.id %}"
+                                {% endwith %} <a href="{% url 'attachments:download' attachment.id %}"
                                     class="btn btn-sm btn-secondary">
                                     <i class="bi bi-download"></i>
                                 </a>
@@ -233,8 +236,7 @@
 
             <!-- Upload -->
             <div class="card-footer" style="background:#fff; border-top: 1px solid #f3f4f6;">
-                <form method="POST" action="{% url 'attachments:upload' ticket.id %}"
-                    enctype="multipart/form-data">
+                <form method="POST" action="{% url 'attachments:upload' ticket.id %}" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="d-flex gap-2 align-items-center">
@@ -265,8 +267,7 @@
                 {% endif %}
             </div>
             <div class="card-body">
-                <form method="POST" action="{% url 'tickets:change_status' ticket.id %}"
-                    x-data="{ novoStatus: '' }">
+                <form method="POST" action="{% url 'tickets:change_status' ticket.id %}" x-data="{ novoStatus: '' }">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="mb-3">
@@ -299,8 +300,7 @@
                         <label class="form-label">Atendente(s) responsável(is)</label>
                         <select name="assignees" class="form-select" multiple>
                             {% for atendente in atendentes %}
-                            <option value="{{ atendente.id }}"
-                                {% if atendente in ticket.assignees.all %}selected{% endif %}>
+                            <option value="{{ atendente.id }}" {% if atendente in ticket.assignees.all %}selected{% endif %}>
                                 {{ atendente.name }}
                             </option>
                             {% endfor %}
@@ -312,10 +312,8 @@
 
                     <div class="mb-3" x-show="novoStatus === 'recebido'" x-cloak>
                         <label class="form-label">Prazo estimado (dias)</label>
-                        <input type="number" name="estimated_days" class="form-control"
-                            min="1" max="365"
-                            value="{{ ticket.estimated_days|default:'' }}"
-                            placeholder="Ex: 5">
+                        <input type="number" name="estimated_days" class="form-control" min="1" max="365"
+                            value="{{ ticket.estimated_days|default:'' }}" placeholder="Ex: 5">
                         <div class="form-text" style="color:#9ca3af; font-size:0.72rem;">
                             Contagem inicia quando entrar em desenvolvimento
                         </div>
@@ -387,8 +385,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header" style="border-bottom:1px solid #f3f4f6;">
-                <h6 class="modal-title" id="previewModalLabel"
-                    style="font-size:0.88rem; font-weight:700;"></h6>
+                <h6 class="modal-title" id="previewModalLabel" style="font-size:0.88rem; font-weight:700;"></h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0" id="previewModalBody" style="min-height:400px;"></div>
@@ -397,26 +394,26 @@
 </div>
 
 <script>
-document.getElementById('previewModal').addEventListener('show.bs.modal', function(e) {
-    const btn = e.relatedTarget;
-    const url = btn.dataset.url;
-    const name = btn.dataset.name;
-    const type = btn.dataset.type;
-    const body = document.getElementById('previewModalBody');
-    const title = document.getElementById('previewModalLabel');
+    document.getElementById('previewModal').addEventListener('show.bs.modal', function (e) {
+        const btn = e.relatedTarget;
+        const url = btn.dataset.url;
+        const name = btn.dataset.name;
+        const type = btn.dataset.type;
+        const body = document.getElementById('previewModalBody');
+        const title = document.getElementById('previewModalLabel');
 
-    title.textContent = name;
+        title.textContent = name;
 
-    if (type === '.pdf' || type === 'html') {
-        body.innerHTML = `<iframe src="${url}" width="100%" height="600px" style="border:none;"></iframe>`;
-    } else {
-        body.innerHTML = `<img src="${url}" style="max-width:100%; display:block; margin:auto; padding:1rem;">`;
-    }
-});
+        if (type === '.pdf' || type === 'html') {
+            body.innerHTML = `<iframe src="${url}" width="100%" height="600px" style="border:none;"></iframe>`;
+        } else {
+            body.innerHTML = `<img src="${url}" style="max-width:100%; display:block; margin:auto; padding:1rem;">`;
+        }
+    });
 
-document.getElementById('previewModal').addEventListener('hidden.bs.modal', function() {
-    document.getElementById('previewModalBody').innerHTML = '';
-});
+    document.getElementById('previewModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('previewModalBody').innerHTML = '';
+    });
 </script>
 
 {% endblock %}
