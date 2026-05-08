@@ -15,7 +15,8 @@
         <a href="{{ request.GET.next|default:'/' }}" class="btn btn-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i> Voltar
         </a>
-        {{ ticket.get_status_display }}
+        <span class="badge-status badge-{{ ticket.status }}">
+            {{ ticket.get_status_display }}
         </span>
     </div>
 </div>
@@ -127,6 +128,7 @@
                 {% endif %}
             </div>
         </div>
+
         <!-- Comentários -->
         <div class="card mt-3">
             <div class="card-header">Comentários</div>
@@ -160,8 +162,8 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="mb-2">
-                        <textarea name="content" class="form-control" rows="3" placeholder="Escreva um comentário..."
-                            required></textarea>
+                        <textarea name="content" class="form-control" rows="3"
+                            placeholder="Escreva um comentário..." required></textarea>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
                         {% if request.user.role in 'admin,atendente' %}
@@ -184,7 +186,7 @@
 
         <!-- Anexos -->
         <div class="card mt-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <span>Anexos</span>
             </div>
             <div class="card-body p-0">
@@ -200,33 +202,25 @@
                                     {{ attachment.size|filesizeformat }}
                                 </small>
                             </div>
-                            <a href="{% url 'attachments:download' attachment.id %}" class="btn btn-sm btn-secondary">
-                                <i class="bi bi-download"></i>
-                            </a>
+                            <div class="d-flex gap-2">
+                                {% with name=attachment.original_name|lower %}
+                                {% if name|slice:"-4:" == ".pdf" or name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" == ".jpeg" or name|slice:"-4:" == ".gif" or name|slice:"-5:" == ".html" %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#previewModal"
+                                    data-url="{% url 'attachments:preview' attachment.id %}"
+                                    data-name="{{ attachment.original_name }}"
+                                    data-type="{{ name|slice:'-4:' }}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                {% endif %}
+                                {% endwith %}
+                                <a href="{% url 'attachments:download' attachment.id %}"
+                                    class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
                         </div>
-
-                        {% with name=attachment.original_name|lower %}
-                        {% if name|slice:"-4:" == ".pdf" %}
-                        <div class="mt-2">
-                            <iframe src="{% url 'attachments:preview' attachment.id %}" width="100%" height="400px"
-                                style="border:1px solid #e5e7eb; border-radius:6px;">
-                            </iframe>
-                        </div>
-                        {% elif name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" == ".jpeg"
-                        or name|slice:"-4:" == ".gif" %}
-                        <div class="mt-2">
-                            <img src="{% url 'attachments:preview' attachment.id %}"
-                                style="max-width:100%; border-radius:6px; border:1px solid #e5e7eb;">
-                        </div>
-                        {% elif name|slice:"-5:" == ".html" %}
-                        <div class="mt-2">
-                            <iframe src="{% url 'attachments:preview' attachment.id %}" width="100%" height="300px"
-                                style="border:1px solid #e5e7eb; border-radius:6px;">
-                            </iframe>
-                        </div>
-                        {% endif %}
-                        {% endwith %}
-
                     </li>
                     {% endfor %}
                 </ul>
@@ -239,7 +233,8 @@
 
             <!-- Upload -->
             <div class="card-footer" style="background:#fff; border-top: 1px solid #f3f4f6;">
-                <form method="POST" action="{% url 'attachments:upload' ticket.id %}" enctype="multipart/form-data">
+                <form method="POST" action="{% url 'attachments:upload' ticket.id %}"
+                    enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="d-flex gap-2 align-items-center">
@@ -252,6 +247,7 @@
                 </form>
             </div>
         </div>
+
     </div>
 
     <!-- Coluna lateral: ações -->
@@ -269,7 +265,8 @@
                 {% endif %}
             </div>
             <div class="card-body">
-                <form method="POST" action="{% url 'tickets:change_status' ticket.id %}" x-data="{ novoStatus: '' }">
+                <form method="POST" action="{% url 'tickets:change_status' ticket.id %}"
+                    x-data="{ novoStatus: '' }">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                     <div class="mb-3">
@@ -297,13 +294,13 @@
                         </select>
                     </div>
 
-                    <!-- Atendentes — aparece quando recebido -->
                     {% if request.user.role in 'admin,atendente' %}
                     <div class="mb-3" x-show="novoStatus === 'recebido'" x-cloak>
                         <label class="form-label">Atendente(s) responsável(is)</label>
                         <select name="assignees" class="form-select" multiple>
                             {% for atendente in atendentes %}
-                            <option value="{{ atendente.id }}" {% if atendente in ticket.assignees.all %}selected{% endif %}>
+                            <option value="{{ atendente.id }}"
+                                {% if atendente in ticket.assignees.all %}selected{% endif %}>
                                 {{ atendente.name }}
                             </option>
                             {% endfor %}
@@ -313,18 +310,18 @@
                         </div>
                     </div>
 
-                    <!-- Prazo — aparece quando recebido -->
                     <div class="mb-3" x-show="novoStatus === 'recebido'" x-cloak>
                         <label class="form-label">Prazo estimado (dias)</label>
-                        <input type="number" name="estimated_days" class="form-control" min="1" max="365"
-                            value="{{ ticket.estimated_days|default:'' }}" placeholder="Ex: 5">
+                        <input type="number" name="estimated_days" class="form-control"
+                            min="1" max="365"
+                            value="{{ ticket.estimated_days|default:'' }}"
+                            placeholder="Ex: 5">
                         <div class="form-text" style="color:#9ca3af; font-size:0.72rem;">
                             Contagem inicia quando entrar em desenvolvimento
                         </div>
                     </div>
                     {% endif %}
 
-                    <!-- Justificativa — devolver ao desenvolvimento -->
                     <div class="mb-3" x-show="novoStatus === 'em_desenvolvimento'" x-cloak>
                         <label class="form-label">
                             Descreva o problema <span style="color:#F4645F;">*</span>
@@ -338,7 +335,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- Justificativa — nao_atendido -->
                     {% if request.user.role in 'admin,atendente' %}
                     <div class="mb-3" x-show="novoStatus === 'nao_atendido'" x-cloak>
                         <label class="form-label">
@@ -355,6 +351,7 @@
         </div>
         {% endif %}
         {% endif %}
+
         <!-- Informações laterais -->
         <div class="card">
             <div class="card-header">Informações</div>
@@ -381,7 +378,45 @@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+
+<!-- Modal de preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:1px solid #f3f4f6;">
+                <h6 class="modal-title" id="previewModalLabel"
+                    style="font-size:0.88rem; font-weight:700;"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="previewModalBody" style="min-height:400px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('previewModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const url = btn.dataset.url;
+    const name = btn.dataset.name;
+    const type = btn.dataset.type;
+    const body = document.getElementById('previewModalBody');
+    const title = document.getElementById('previewModalLabel');
+
+    title.textContent = name;
+
+    if (type === '.pdf' || type === 'html') {
+        body.innerHTML = `<iframe src="${url}" width="100%" height="600px" style="border:none;"></iframe>`;
+    } else {
+        body.innerHTML = `<img src="${url}" style="max-width:100%; display:block; margin:auto; padding:1rem;">`;
+    }
+});
+
+document.getElementById('previewModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('previewModalBody').innerHTML = '';
+});
+</script>
 
 {% endblock %}
