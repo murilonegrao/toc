@@ -209,8 +209,7 @@
                                     class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                {% elif name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" ==
-                                ".jpeg" or name|slice:"-4:" == ".gif" or name|slice:"-5:" == ".html" %}
+                                {% elif name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" == ".jpeg" or name|slice:"-4:" == ".gif" or name|slice:"-5:" == ".html" %}
                                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                                     data-bs-target="#previewModal"
                                     data-url="{% url 'attachments:preview' attachment.id %}"
