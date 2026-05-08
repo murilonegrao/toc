@@ -15,7 +15,7 @@
         <a href="{{ request.GET.next|default:'/' }}" class="btn btn-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i> Voltar
         </a>
-            {{ ticket.get_status_display }}
+        {{ ticket.get_status_display }}
         </span>
     </div>
 </div>
@@ -131,12 +131,10 @@
         <div class="card mt-3">
             <div class="card-header">Comentários</div>
             <div class="card-body p-0">
-
                 {% if comments %}
                 {% for comment in comments %}
                 <div class="p-3" style="border-bottom: 1px solid #f3f4f6;
                 {% if comment.internal %}background-color: #fffbeb;{% endif %}">
-
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <strong style="font-size:0.82rem;">{{ comment.author.name }}</strong>
                         <div class="d-flex align-items-center gap-2">
@@ -148,7 +146,6 @@
                             <small style="color:#9ca3af;">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
                         </div>
                     </div>
-
                     <p style="margin:0; white-space:pre-wrap; font-size:0.85rem;">{{ comment.comment }}</p>
                 </div>
                 {% endfor %}
@@ -157,10 +154,7 @@
                     Nenhum comentário ainda.
                 </div>
                 {% endif %}
-
             </div>
-
-            <!-- Formulário de novo comentário -->
             <div class="card-footer" style="background:#fff; border-top: 1px solid #f3f4f6;">
                 <form method="POST" action="{% url 'comments:add' ticket.id %}">
                     {% csrf_token %}
@@ -186,17 +180,19 @@
                     </div>
                 </form>
             </div>
-            <!-- Anexos -->
-            <div class="card mt-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Anexos</span>
-                </div>
-                <div class="card-body p-0">
+        </div>
 
-                    {% if attachments %}
-                    <ul class="list-group list-group-flush">
-                        {% for attachment in attachments %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+        <!-- Anexos -->
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Anexos</span>
+            </div>
+            <div class="card-body p-0">
+                {% if attachments %}
+                <ul class="list-group list-group-flush">
+                    {% for attachment in attachments %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="bi bi-paperclip me-2" style="color:#9ca3af;"></i>
                                 <span style="font-size:0.85rem;">{{ attachment.original_name }}</span>
@@ -204,37 +200,58 @@
                                     {{ attachment.size|filesizeformat }}
                                 </small>
                             </div>
-                            <a href="{% url 'attachments:download' attachment.id %}" target="_blank"
-                                class="btn btn-sm btn-secondary">
+                            <a href="{% url 'attachments:download' attachment.id %}" class="btn btn-sm btn-secondary">
                                 <i class="bi bi-download"></i>
                             </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="text-center py-3" style="color:#9ca3af; font-size:0.82rem;">
-                        Nenhum anexo ainda.
-                    </div>
-                    {% endif %}
-
-                </div>
-
-                <!-- Upload -->
-                <div class="card-footer" style="background:#fff; border-top: 1px solid #f3f4f6;">
-                    <form method="POST" action="{% url 'attachments:upload' ticket.id %}" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.GET.next }}">
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="file" name="file" class="form-control form-control-sm">
-                            <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">
-                                <i class="bi bi-upload me-1"></i> Enviar
-                            </button>
                         </div>
-                    </form>
+
+                        {% with name=attachment.original_name|lower %}
+                        {% if name|slice:"-4:" == ".pdf" %}
+                        <div class="mt-2">
+                            <iframe src="{% url 'attachments:preview' attachment.id %}" width="100%" height="400px"
+                                style="border:1px solid #e5e7eb; border-radius:6px;">
+                            </iframe>
+                        </div>
+                        {% elif name|slice:"-4:" == ".png" or name|slice:"-4:" == ".jpg" or name|slice:"-5:" == ".jpeg"
+                        or name|slice:"-4:" == ".gif" %}
+                        <div class="mt-2">
+                            <img src="{% url 'attachments:preview' attachment.id %}"
+                                style="max-width:100%; border-radius:6px; border:1px solid #e5e7eb;">
+                        </div>
+                        {% elif name|slice:"-5:" == ".html" %}
+                        <div class="mt-2">
+                            <iframe src="{% url 'attachments:preview' attachment.id %}" width="100%" height="300px"
+                                style="border:1px solid #e5e7eb; border-radius:6px;">
+                            </iframe>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-3" style="color:#9ca3af; font-size:0.82rem;">
+                    Nenhum anexo ainda.
                 </div>
+                {% endif %}
+            </div>
+
+            <!-- Upload -->
+            <div class="card-footer" style="background:#fff; border-top: 1px solid #f3f4f6;">
+                <form method="POST" action="{% url 'attachments:upload' ticket.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.GET.next }}">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="file" name="file" class="form-control form-control-sm"
+                            accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.txt,.html,.zip">
+                        <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">
+                            <i class="bi bi-upload me-1"></i> Enviar
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-
     </div>
 
     <!-- Coluna lateral: ações -->
@@ -364,7 +381,7 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>
+
 {% endblock %}

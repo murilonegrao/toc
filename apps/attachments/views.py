@@ -98,3 +98,28 @@ def download_attachment(request, attachment_id):
         return response
     except ClientError:
         raise Http404("Arquivo não encontrado.")
+    
+@login_required
+def preview_attachment(request, attachment_id):
+    attachment = get_object_or_404(Attachment, id=attachment_id)
+
+    s3 = boto3.client(
+        's3',
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    )
+
+    try:
+        obj = s3.get_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=attachment.file.name,
+        )
+        response = StreamingHttpResponse(
+            obj['Body'].iter_chunks(),
+            content_type=attachment.mime_type or 'application/octet-stream',
+        )
+        response['Content-Disposition'] = f'inline; filename="{attachment.original_name}"'
+        return response
+    except ClientError:
+        raise Http404
