@@ -16,7 +16,8 @@ import re
 
 ALLOWED_EXTENSIONS = {
     '.pdf', '.png', '.jpg', '.jpeg', '.gif', 
-    '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv'
+    '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv',
+    '.html', '.zip', '.rar',
 }
 
 @login_required
